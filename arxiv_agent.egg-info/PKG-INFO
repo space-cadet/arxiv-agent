@@ -1,0 +1,11 @@
+Metadata-Version: 2.2
+Name: arxiv-agent
+Version: 0.1
+Requires-Python: >=3.8
+Requires-Dist: httpx
+Requires-Dist: backoff
+Requires-Dist: pytest
+Requires-Dist: pytest-asyncio
+Requires-Dist: pytest-mock
+Dynamic: requires-dist
+Dynamic: requires-python

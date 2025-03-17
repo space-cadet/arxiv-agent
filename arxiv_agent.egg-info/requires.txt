@@ -1,0 +1,5 @@
+httpx
+backoff
+pytest
+pytest-asyncio
+pytest-mock
