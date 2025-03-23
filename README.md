@@ -56,7 +56,8 @@ http://localhost:8501
 
 ### Author Search
 - Enter an author's name or ID to find their publications
-- Sort papers by publication date, update date, or title
+- Access search history for quick re-searches (persists between sessions)
+- Sort papers by publication date, update date, or title with persistent results
 - View paper details including abstract, categories, and publication date
 - (Future enhancement: Citation-based sorting)
 
