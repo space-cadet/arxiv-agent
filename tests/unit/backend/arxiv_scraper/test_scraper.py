@@ -47,3 +47,33 @@ async def test_http_error_handling(mocker):
     
     with pytest.raises(httpx.HTTPError):
         await scraper.fetch_daily_submissions()
+
+@pytest.mark.asyncio
+async def test_author_query(mocker):
+    """Test query filtering by specific author"""
+    mock_response = AsyncMock()
+    mock_response.text = "<feed></feed>"
+    mocker.patch.object(httpx.AsyncClient, "get", new=AsyncMock(return_value=mock_response))
+    scraper = ArxivScraper()
+    
+    await scraper.fetch_daily_submissions(author="John Doe")
+    
+    args, _ = httpx.AsyncClient.get.call_args
+    assert "au:John+Doe" in args[0]
+
+@pytest.mark.asyncio
+async def test_multiple_criteria_query(mocker):
+    """Test query with multiple criteria (category and date range)"""
+    mock_response = AsyncMock()
+    mock_response.text = "<feed></feed>"
+    mocker.patch.object(httpx.AsyncClient, "get", new=AsyncMock(return_value=mock_response))
+    scraper = ArxivScraper()
+    
+    await scraper.fetch_daily_submissions(
+        categories=["cs.AI", "stat.ML"],
+        date_range="[2023-01-01 TO 2023-01-31]"
+    )
+    
+    args, _ = httpx.AsyncClient.get.call_args
+    assert "cat:cs.AI+OR+stat.ML" in args[0]
+    assert "submittedDate:[2023-01-01 TO 2023-01-31]" in args[0]
