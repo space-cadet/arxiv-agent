@@ -63,7 +63,7 @@ http://localhost:8501
 
 ### Daily Papers
 - Browse the latest submissions to arXiv
-- Filter by categories of interest
+- Filter by categories of interest (customizable and persistent)
 - Read abstracts and access paper links
 
 ### My Profile

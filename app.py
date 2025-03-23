@@ -8,6 +8,7 @@ from pathlib import Path
 # Constants
 API_URL = "http://localhost:8000"  # FastAPI backend URL
 SEARCH_HISTORY_FILE = Path("data/user_data/search_history.json")
+CATEGORIES_FILE = Path("data/user_data/categories.json")
 
 # Create directory if it doesn't exist
 SEARCH_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -30,6 +31,37 @@ def save_search_history(history):
     except Exception as e:
         print(f"Error saving search history: {e}")
 
+# Function to load categories from file
+def load_categories():
+    if CATEGORIES_FILE.exists():
+        try:
+            with open(CATEGORIES_FILE, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading categories: {e}")
+            return {"default_categories": [], "custom_categories": []}
+    else:
+        # Create default categories file if it doesn't exist
+        default_data = {
+            "default_categories": [
+                {"code": "cs.AI", "name": "Artificial Intelligence"},
+                {"code": "cs.CL", "name": "Computation and Language"},
+                {"code": "cs.CV", "name": "Computer Vision"},
+                {"code": "cs.LG", "name": "Machine Learning"}
+            ],
+            "custom_categories": []
+        }
+        save_categories(default_data)
+        return default_data
+
+# Function to save categories to file
+def save_categories(categories_data):
+    try:
+        with open(CATEGORIES_FILE, 'w') as f:
+            json.dump(categories_data, f, indent=2)
+    except Exception as e:
+        print(f"Error saving categories: {e}")
+
 # Initialize session state variables if they don't exist
 if 'papers' not in st.session_state:
     st.session_state.papers = []
@@ -43,6 +75,10 @@ if 'last_search' not in st.session_state:
     
 if 'enter_pressed' not in st.session_state:
     st.session_state.enter_pressed = False
+    
+if 'categories' not in st.session_state:
+    # Load categories from file
+    st.session_state.categories = load_categories()
 
 # Configure page
 st.set_page_config(
@@ -197,13 +233,132 @@ def main():
                 reset_search_results()
                 st.rerun()
         
-        # Show arXiv categories in sidebar
-        st.subheader("Popular arXiv Categories")
-        st.write("CS Categories:")
-        st.write("- cs.AI: Artificial Intelligence")
-        st.write("- cs.CL: Computation and Language")
-        st.write("- cs.CV: Computer Vision")
-        st.write("- cs.LG: Machine Learning")
+        # Categories manager in sidebar
+        st.subheader("arXiv Categories")
+        
+        # Create tabs for viewing and managing categories
+        cat_tab1, cat_tab2 = st.tabs(["View Categories", "Manage Categories"])
+        
+        with cat_tab1:
+            # Get all categories but filter out hidden ones
+            hidden_categories = getattr(st.session_state, "hidden_categories", set())
+            visible_categories = []
+            
+            # Combine and filter categories
+            for cat_list in ["default_categories", "custom_categories"]:
+                for cat in st.session_state.categories.get(cat_list, []):
+                    if cat["code"] not in hidden_categories:
+                        visible_categories.append(cat)
+            
+            # Display visible categories
+            if visible_categories:
+                st.write("**Visible Categories:**")
+                for cat in visible_categories:
+                    st.write(f"- {cat['code']}: {cat['name']}")
+            else:
+                st.write("No visible categories. Enable some categories in the 'Manage Categories' tab.")
+            
+            # Optionally show hidden categories too
+            if hidden_categories:
+                with st.expander("Hidden Categories"):
+                    for cat_list in ["default_categories", "custom_categories"]:
+                        for cat in st.session_state.categories.get(cat_list, []):
+                            if cat["code"] in hidden_categories:
+                                st.write(f"- {cat['code']}: {cat['name']}")
+        
+        with cat_tab2:
+            # Add new category
+            with st.form(key="add_category_form"):
+                st.write("**Add New Category**")
+                new_cat_code = st.text_input("Category Code (e.g., cs.AI):", key="new_cat_code")
+                new_cat_name = st.text_input("Category Name:", key="new_cat_name")
+                add_cat_submitted = st.form_submit_button("Add Category")
+    
+                if add_cat_submitted and new_cat_code and new_cat_name:
+                    # Check if category already exists
+                    existing_codes = [
+                        cat["code"] for cat in 
+                        st.session_state.categories.get("default_categories", []) + 
+                        st.session_state.categories.get("custom_categories", [])
+                    ]
+                    
+                    if new_cat_code in existing_codes:
+                        st.error(f"Category {new_cat_code} already exists")
+                    else:
+                        # Add new category to custom categories
+                        st.session_state.categories.setdefault("custom_categories", []).append({
+                            "code": new_cat_code,
+                            "name": new_cat_name
+                        })
+                        
+                        # Save updated categories
+                        save_categories(st.session_state.categories)
+                        st.success(f"Added category: {new_cat_code}")
+                        st.rerun()
+            
+            # Remove categories
+            st.write("**Remove Categories**")
+            
+            # Default categories (can be hidden but not removed)
+            st.write("Default Categories:")
+            for i, cat in enumerate(st.session_state.categories.get("default_categories", [])):
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.write(f"{cat['code']}: {cat['name']}")
+                with col2:
+                    # Initialize hidden_categories if not already in session state
+                    if "hidden_categories" not in st.session_state:
+                        st.session_state.hidden_categories = set()
+                        
+                    # Check if category is currently hidden
+                    is_hidden = cat['code'] in st.session_state.hidden_categories
+                    
+                    # Create radio button
+                    visibility = st.radio(
+                        "Visibility",
+                        options=["Show", "Hide"],
+                        index=1 if is_hidden else 0,  # Default to current state
+                        key=f"visibility_{cat['code']}",
+                        horizontal=True,
+                        label_visibility="collapsed"  # Hide the label
+                    )
+                    
+                    # Update hidden categories based on selection
+                    if visibility == "Hide" and not is_hidden:
+                        st.session_state.hidden_categories.add(cat['code'])
+                    elif visibility == "Show" and is_hidden:
+                        st.session_state.hidden_categories.discard(cat['code'])
+            
+            # Custom categories (can be completely removed)
+            if st.session_state.categories.get("custom_categories", []):
+                st.write("Custom Categories:")
+                for i, cat in enumerate(st.session_state.categories.get("custom_categories", [])):
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.write(f"{cat['code']}: {cat['name']}")
+                    with col2:
+                        if st.button("Remove", key=f"remove_{i}"):
+                            # Remove category
+                            st.session_state.categories["custom_categories"].pop(i)
+                            # Save updated categories
+                            save_categories(st.session_state.categories)
+                            st.success(f"Removed category: {cat['code']}")
+                            st.rerun()
+            else:
+                st.write("No custom categories added yet.")
+                
+            # Reset to defaults button
+            if st.button("Reset to Default Categories"):
+                # Reset categories
+                st.session_state.categories = {
+                    "default_categories": st.session_state.categories.get("default_categories", []),
+                    "custom_categories": []
+                }
+                st.session_state.hidden_categories = set()
+                # Save updated categories
+                save_categories(st.session_state.categories)
+                st.success("Reset to default categories")
+                st.rerun()
         
     # Main content
     if page == "Author Search":
@@ -375,23 +530,36 @@ def main():
         # Category selection
         st.subheader("Filter by Categories")
         categories = []
-        cols = st.columns(2)
         
-        with cols[0]:
-            if st.checkbox("Artificial Intelligence (cs.AI)"):
-                categories.append("cs.AI")
-            if st.checkbox("Computer Vision (cs.CV)"):
-                categories.append("cs.CV")
-                
-        with cols[1]:
-            if st.checkbox("Machine Learning (cs.LG)"):
-                categories.append("cs.LG")
-            if st.checkbox("Computation and Language (cs.CL)"):
-                categories.append("cs.CL")
-                
-        custom_category = st.text_input("Add other category (e.g., stat.ML):")
-        if custom_category:
-            categories.append(custom_category)
+        # Get all available categories (excluding hidden ones)
+        available_categories = []
+        hidden_categories = getattr(st.session_state, "hidden_categories", set())
+        
+        for cat_list in ["default_categories", "custom_categories"]:
+            for cat in st.session_state.categories.get(cat_list, []):
+                if cat["code"] not in hidden_categories:
+                    available_categories.append(cat)
+        
+        # Display categories in a grid of checkboxes
+        if available_categories:
+            # Create columns based on number of categories (2-4 columns)
+            num_cols = min(4, max(2, len(available_categories) // 3 + 1))
+            cols = st.columns(num_cols)
+            
+            for i, cat in enumerate(available_categories):
+                col_idx = i % num_cols
+                with cols[col_idx]:
+                    if st.checkbox(f"{cat['name']} ({cat['code']})"):
+                        categories.append(cat['code'])
+        else:
+            st.warning("No categories available. Please add some in the sidebar 'Manage Categories' tab.")
+        
+        # Option to add a custom category for this search only
+        with st.expander("Add temporary category"):
+            custom_category = st.text_input("Add category for this search only (e.g., stat.ML):")
+            if custom_category:
+                categories.append(custom_category)
+                st.info(f"Added temporary category: {custom_category}. To save this category permanently, use the sidebar 'Manage Categories' tab.")
             
         # Fetch papers
         if st.button("Get Latest Papers"):

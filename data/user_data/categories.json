@@ -1,0 +1,30 @@
+{
+  "default_categories": [
+    {
+      "code": "cs.AI",
+      "name": "Artificial Intelligence"
+    },
+    {
+      "code": "cs.CL",
+      "name": "Computation and Language"
+    },
+    {
+      "code": "cs.CV",
+      "name": "Computer Vision"
+    },
+    {
+      "code": "cs.LG",
+      "name": "Machine Learning"
+    }
+  ],
+  "custom_categories": [
+    {
+      "code": "hep-th",
+      "name": "High Energy Theory"
+    },
+    {
+      "code": "gr-qc",
+      "name": "General Relativity and Quantum Cosmology"
+    }
+  ]
+}

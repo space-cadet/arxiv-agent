@@ -89,14 +89,20 @@ async def get_papers_by_author(query: AuthorQuery):
 async def get_daily_papers(query: CategoryQuery):
     """Fetch daily papers with optional category filtering"""
     try:
+        # Debug logging to trace the issue
+        logger.info(f"Received daily papers request with categories: {query.categories}")
+        
         papers = await scraper.fetch_daily_submissions(
             categories=query.categories, 
             date_range=query.date_range
         )
+        
+        logger.info(f"Found {len(papers)} papers")
         return {"success": True, "papers": papers, "count": len(papers)}
     except Exception as e:
-        logger.error(f"Error fetching daily papers: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error fetching daily papers: {e}", exc_info=True)
+        # Return a more helpful error message instead of throwing an exception
+        return {"success": False, "papers": [], "error": str(e), "count": 0}
 
 @app.get("/profile/{user_id}")
 async def get_user_profile(user_id: str):

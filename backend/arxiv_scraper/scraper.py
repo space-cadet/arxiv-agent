@@ -21,21 +21,29 @@ class ArxivScraper:
         Returns:
             list: List of paper dictionaries
         """
-        # Default to last 24 hours if no date range specified
+        # Default to last 3 days instead of 24h to get more results
         if date_range:
             query = f"?search_query=submittedDate:{date_range}"
         else:
-            query = "?search_query=submittedDate:[now-24h TO now]"
+            query = "?search_query=submittedDate:[now-3d TO now]"
             
-        # Add category filtering if provided
-        if categories:
-            query += f"+AND+cat:{'+OR+'.join(categories)}"
+        # Add category filtering if provided - ensure proper formatting
+        if categories and len(categories) > 0:
+            # Join categories with 'OR' operator for arXiv API
+            cat_query = "+OR+".join([f"cat:{c}" for c in categories])
+            query += f"+AND+({cat_query})"
         
-        logger.debug(f"Querying arXiv API: {self.base_url}{query}")
+        logger.info(f"Querying arXiv API: {self.base_url}{query}")
         response = await self.client.get(f"{self.base_url}{query}")
         response.raise_for_status()
-        logger.debug(f"Got response from arXiv API with status: {response.status_code}")
-        return self._parse_results(response.text)
+        
+        # Add sorting and increase results
+        query += "&sortBy=submittedDate&sortOrder=descending&max_results=50"
+        
+        logger.info(f"Got response from arXiv API with status: {response.status_code}")
+        results = self._parse_results(response.text)
+        logger.info(f"Parsed {len(results)} papers from arXiv API response")
+        return results
     
     @on_exception(expo, httpx.RequestError, max_tries=3)
     async def fetch_by_author(self, author, max_results=50):
