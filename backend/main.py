@@ -8,7 +8,7 @@ import json
 import os
 from pathlib import Path
 
-from backend.arxiv_scraper.scraper import ArxivScraper
+from backend.arxiv_client.client import ArxivClient
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -52,8 +52,8 @@ class UserProfile(BaseModel):
     favorite_authors: List[str] = []
     saved_papers: List[str] = []
 
-# Initialize scraper
-scraper = ArxivScraper()
+# Initialize arxiv client
+client = ArxivClient()
 
 @app.get("/")
 async def root():
@@ -63,7 +63,7 @@ async def root():
 async def get_papers_by_author(query: AuthorQuery):
     """Fetch papers by a specific author"""
     try:
-        papers = await scraper.fetch_by_author(query.author_id, query.max_results)
+        papers = await client.fetch_by_author(query.author_id, query.max_results)
         
         # Add a placeholder for citation counts
         # In a full implementation, you would need to query a citation database or use a service
@@ -92,7 +92,7 @@ async def get_daily_papers(query: CategoryQuery):
         # Debug logging to trace the issue
         logger.info(f"Received daily papers request with categories: {query.categories}")
         
-        papers = await scraper.fetch_daily_submissions(
+        papers = await client.fetch_daily_submissions(
             categories=query.categories, 
             date_range=query.date_range
         )
@@ -133,7 +133,7 @@ async def save_user_profile(profile: UserProfile):
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources on shutdown"""
-    await scraper.close()
+    await client.close()
 
 if __name__ == "__main__":
     import uvicorn

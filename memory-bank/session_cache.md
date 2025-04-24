@@ -1,4 +1,28 @@
 # Session Cache
+*Last Updated: 2025-04-25*
+
+## Overview
+- Active: 1 | Paused: 0 | Focus: T2
+
+## Task Registry
+- T2: Migrate to arxiv Python Package - 🔄
+
+## Active Tasks
+### T2: Migrate to arxiv Python Package
+**Status:** 🔄 **Priority:** HIGH
+**Started:** 2025-04-25 **Last**: 2025-04-25
+**Context**: Replacing custom ArXiv scraper with official arxiv package
+**Files**: 
+- `backend/arxiv_client/client.py`
+- `backend/main.py`
+- `archive/scrapers/arxiv_scraper_v1/scraper.py`
+**Progress**:
+1. ✅ Archive existing scraper code
+2. ✅ Create new arxiv client implementation
+3. ✅ Update FastAPI backend integration
+4. ⬜ Update tests
+5. ⬜ Test frontend compatibility
+6. ⬜ Update documentation
 *Last Updated: 2025-04-24*
 
 ## Overview

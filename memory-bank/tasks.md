@@ -5,8 +5,24 @@
 | ID | Title | Status | Priority | Started | Dependencies |
 |----|-------|--------|----------|---------|--------------|
 | T1 | Project Implementation Planning | ⬜ | HIGH | - | T0 |
+| T2 | Migrate to arxiv Python Package | ⬜ | HIGH | 2025-04-25 | - |
 
 ## Task Details
+### T2: Migrate to arxiv Python Package
+**Description**: Replace custom ArXiv scraper with official arxiv Python package
+**Status**: ⬜ **Last**: 2025-04-25
+**Criteria**: 
+- Archive existing scraper code
+- Implement new client using arxiv package
+- Migrate all functionality
+- Update tests
+- Update documentation
+**Files**: 
+- `backend/arxiv_scraper/scraper.py`
+- `tests/unit/backend/arxiv_scraper/test_scraper.py`
+- `tests/integration/test_arxiv_integration.py`
+**Notes**: Original scraper code to be archived for reference
+
 ### T1: Project Implementation Planning
 **Description**: Plan the technical implementation of the ArXiv Agent project
 **Status**: ⬜ **Last**: -
