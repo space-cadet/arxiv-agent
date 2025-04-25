@@ -1,0 +1,3659 @@
+TITLE: Combining Multiple Agentic Tools with AI SDK
+DESCRIPTION: This snippet demonstrates how to combine multiple Agentic tools and custom functions for use with an AI SDK. It includes examples of using different clients, selecting specific functions, and creating custom AI functions.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/usage.mdx#2025-04-11_snippet_2
+
+LANGUAGE: typescript
+CODE:
+```
+import { SerperClient, WikipediaClient, FirecrawlClient } from '@agentic/stdlib'
+import { createAIFunction } from '@agentic/core'
+import { z } from 'zod'
+
+const googleSearch = new SerperClient()
+const wikipedia = new WikipediaClient()
+const firecrawl = new FirecrawlClient()
+
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  // This example uses tools from 4 different sources. You can pass as many
+  // AIFunctionLike objects as you want.
+  tools: createAISDKTools(
+    googleSearch,
+    wikipedia,
+    // Pick a single function from the firecrawl client's set of AI functions
+    firecrawl.functions.pick('firecrawl_search'),
+    // Create a custom AI function (based off of Anthropic's think tool: https://www.anthropic.com/engineering/claude-think-tool)
+    createAIFunction({
+      name: 'think',
+      description: `Use this tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.`,
+      inputSchema: z.object({
+        thought: z.string().describe('A thought to think about.')
+      }),
+      execute: ({ thought }) => thought
+    })
+  ),
+  prompt:
+    'What year did Jurassic Park the movie come out, and what else happened that year?'
+})
+```
+
+----------------------------------------
+
+TITLE: Using Agentic Adapter with Vercel AI SDK for Weather Data
+DESCRIPTION: Example TypeScript code demonstrating how to use the Agentic adapter with Vercel AI SDK to retrieve weather information. It uses the WeatherClient from @agentic/weather package and OpenAI's GPT-4o-mini model.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/ai-sdk.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import 'dotenv/config'
+
+import { createAISDKTools } from '@agentic/ai-sdk'
+import { WeatherClient } from '@agentic/weather'
+import { openai } from '@ai-sdk/openai'
+import { generateText } from 'ai'
+
+async function main() {
+  const weather = new WeatherClient()
+
+  const result = await generateText({
+    model: openai('gpt-4o-mini'),
+    tools: createAISDKTools(weather),
+    toolChoice: 'required',
+    temperature: 0,
+    system: 'You are a helpful assistant. Be as concise as possible.',
+    prompt: 'What is the weather in San Francisco?'
+  })
+
+  console.log(result.toolResults[0])
+}
+
+await main()
+```
+
+----------------------------------------
+
+TITLE: Using WeatherClient as a Normal TypeScript Class
+DESCRIPTION: Demonstrates how to use the WeatherClient from Agentic as a standard TypeScript class to retrieve current weather information. This example requires a WEATHER_API_KEY environment variable from weatherapi.com.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/readme.md#2025-04-11_snippet_0
+
+LANGUAGE: typescript
+CODE:
+```
+import { WeatherClient } from '@agentic/stdlib'
+
+// Requires `process.env.WEATHER_API_KEY` (free from weatherapi.com)
+const weather = new WeatherClient()
+
+const result = await weather.getCurrentWeather({
+  q: 'San Francisco'
+})
+console.log(result)
+```
+
+----------------------------------------
+
+TITLE: Implementing a Weather Agent with Mastra and OpenAI
+DESCRIPTION: Example of creating a weather agent using Mastra's Agent class with OpenAI's model and a weather client. The agent is configured to answer weather-related queries using the specified tools and model.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/mastra.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import 'dotenv/config'
+
+import { createMastraTools } from '@agentic/mastra'
+import { WeatherClient } from '@agentic/weather'
+import { openai } from '@ai-sdk/openai'
+import { Agent } from '@mastra/core/agent'
+
+async function main() {
+  const weather = new WeatherClient()
+
+  const weatherAgent = new Agent({
+    name: 'Weather Agent',
+    instructions: 'You are a helpful assistant. Be as concise as possible.',
+    model: openai('gpt-4o-mini'),
+    tools: createMastraTools(weather)
+  })
+
+  const res = await weatherAgent.generate(
+    'What is the weather in San Francisco?'
+  )
+  console.log(res.text)
+}
+
+await main()
+```
+
+----------------------------------------
+
+TITLE: LangChain Weather Integration Example
+DESCRIPTION: Demonstrates how to create a LangChain agent that uses weather tools to process natural language queries about weather conditions
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/langchain.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { createLangChainTools } from '@agentic/langchain'
+import { WeatherClient } from '@agentic/stdlib'
+import { ChatPromptTemplate } from '@langchain/core/prompts'
+import { ChatOpenAI } from '@langchain/openai'
+import { AgentExecutor, createToolCallingAgent } from 'langchain/agents'
+
+async function main() {
+  const weather = new WeatherClient()
+
+  const tools = createLangChainTools(weather)
+  const agent = createToolCallingAgent({
+    llm: new ChatOpenAI({ model: 'gpt-4o-mini', temperature: 0 }),
+    tools,
+    prompt: ChatPromptTemplate.fromMessages([
+      ['system', 'You are a helpful assistant. Be as concise as possible.'],
+      ['placeholder', '{chat_history}'],
+      ['human', '{input}'],
+      ['placeholder', '{agent_scratchpad}']
+    ])
+  })
+
+  const agentExecutor = new AgentExecutor({
+    agent,
+    tools
+    // verbose: true
+  })
+
+  const result = await agentExecutor.invoke({
+    input: 'What is the weather in San Francisco?'
+  })
+
+  console.log(result.output)
+}
+
+await main()
+```
+
+----------------------------------------
+
+TITLE: Using Multiple Tools with Agentic and AI SDK
+DESCRIPTION: Demonstrates combining multiple tools from different sources using Agentic with an AI SDK. This example shows how to use pre-built clients, pick specific functions from a client, and create custom AI functions all in the same request.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/readme.md#2025-04-11_snippet_2
+
+LANGUAGE: typescript
+CODE:
+```
+import { SerperClient, WikipediaClient, FirecrawlClient } from '@agentic/stdlib'
+import { createAIFunction } from '@agentic/core'
+import { z } from 'zod'
+
+const googleSearch = new SerperClient()
+const wikipedia = new WikipediaClient()
+const firecrawl = new FirecrawlClient()
+
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  // This example uses tools from 4 different sources. You can pass as many
+  // AIFunctionLike objects as you want.
+  tools: createAISDKTools(
+    googleSearch,
+    wikipedia,
+    // Pick a single function from the firecrawl client's set of AI functions
+    firecrawl.functions.pick('firecrawl_search'),
+    // Create a custom AI function (based off of Anthropic's think tool: https://www.anthropic.com/engineering/claude-think-tool)
+    createAIFunction({
+      name: 'think',
+      description: `Use this tool to think about something. It will not obtain new information or change the database, but just append the thought to the log. Use it when complex reasoning or some cache memory is needed.`,
+      inputSchema: z.object({
+        thought: z.string().describe('A thought to think about.')
+      }),
+      execute: ({ thought }) => thought
+    })
+  ),
+  prompt:
+    'What year did Jurassic Park the movie come out, and what else happened that year?'
+})
+```
+
+----------------------------------------
+
+TITLE: Using WeatherClient as an LLM-based Tool with Vercel AI SDK
+DESCRIPTION: This example shows how to use the WeatherClient as an LLM-based tool integrated with Vercel's AI SDK. It uses the createAISDKTools adapter to convert the WeatherClient into a compatible tool for the AI SDK.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/usage.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+// sdk-specific imports
+import { openai } from '@ai-sdk/openai'
+import { generateText } from 'ai'
+import { createAISDKTools } from '@agentic/ai-sdk'
+
+// sdk-agnostic imports
+import { WeatherClient } from '@agentic/stdlib'
+
+const weather = new WeatherClient()
+
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  // this is the key line which uses the `@agentic/ai-sdk` adapter
+  tools: createAISDKTools(weather),
+  toolChoice: 'required',
+  prompt: 'What is the weather in San Francisco?'
+})
+
+console.log(result.toolResults[0])
+```
+
+----------------------------------------
+
+TITLE: Using Firecrawl Client to Scrape URLs
+DESCRIPTION: Example code showing how to initialize the FirecrawlClient and use it to scrape a website URL. Requires FIRECRAWL_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/firecrawl.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { FirecrawlClient } from '@agentic/firecrawl'
+
+const firecrawl = new FirecrawlClient()
+const res = await firecrawl.scrapeUrl('https://example.com')
+```
+
+----------------------------------------
+
+TITLE: OpenAI Responses API Integration
+DESCRIPTION: Extended example showing how to use Agentic with OpenAI's Responses API for weather data retrieval
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/openai.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import 'dotenv/config'
+
+import { WeatherClient } from '@agentic/stdlib'
+import OpenAI from 'openai'
+
+async function main() {
+  const weather = new WeatherClient()
+  const openai = new OpenAI()
+
+  const messages: OpenAI.Responses.ResponseInput = [
+    {
+      role: 'system',
+      content: 'You are a helpful assistant. Be as concise as possible.'
+    },
+    { role: 'user', content: 'What is the weather in San Francisco?' }
+  ]
+
+  {
+    // Call to OpenAI to invoke the weather tool
+    const res = await openai.responses.create({
+      model: 'gpt-4o-mini',
+      temperature: 0,
+      tools: weather.functions.responsesToolSpecs,
+      tool_choice: 'required',
+      input: messages
+    })
+
+    const message = res.output[0]
+    console.log(JSON.stringify(message, null, 2))
+    assert(message?.type === 'function_call')
+    assert(message.name === 'get_current_weather')
+
+    const fn = weather.functions.get('get_current_weather')!
+    const toolResult = await fn(message.arguments)
+
+    messages.push(message)
+    messages.push({
+      type: 'function_call_output',
+      call_id: message.call_id,
+      output: JSON.stringify(toolResult)
+    })
+  }
+}
+
+await main()
+```
+
+----------------------------------------
+
+TITLE: Using MCP Tools with OpenAI in an Agentic Project
+DESCRIPTION: A complete example demonstrating how to initialize and use MCP tools with OpenAI models. This creates a local MCP server process that provides filesystem access tools and uses them to list files in the current directory.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/mcp.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import 'dotenv/config'
+
+import { createAISDKTools } from '@agentic/ai-sdk'
+import { createMcpTools } from '@agentic/mcp'
+import { openai } from '@ai-sdk/openai'
+import { generateText } from 'ai'
+
+async function main() {
+  // Create an MCP tools provider, which will start a local MCP server process
+  // and use the stdio transport to communicate with it.
+  const mcpTools = await createMcpTools({
+    name: 'agentic-mcp-filesystem',
+    serverProcess: {
+      command: 'npx',
+      args: [
+        '-y',
+        // This example uses a built-in example MCP server from Anthropic, which
+        // provides a set of tools to access the local filesystem.
+        '@modelcontextprotocol/server-filesystem',
+        // Allow the MCP server to access the current working directory.
+        process.cwd()
+        // Feel free to add additional directories the tool should have access to.
+      ]
+    }
+  })
+
+  const result = await generateText({
+    model: openai('gpt-4o-mini'),
+    tools: createAISDKTools(mcpTools),
+    toolChoice: 'required',
+    temperature: 0,
+    system: 'You are a helpful assistant. Be as concise as possible.',
+    prompt: 'What files are in the current directory?'
+  })
+
+  console.log(result.toolResults[0])
+}
+
+await main()
+```
+
+----------------------------------------
+
+TITLE: Using GoogleDriveClient for File Operations
+DESCRIPTION: Example demonstrating how to authenticate with Google Drive API and perform operations like listing files, getting file metadata, and exporting files in specific formats. Uses GoogleAuth for authentication and the GoogleDriveClient wrapper for simplified API interactions.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/google-drive.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { GoogleDriveClient } from '@agentic/google-drive'
+import { GoogleAuth } from 'google-auth-library'
+import { google } from 'googleapis'
+
+const auth = new GoogleAuth({ scopes: 'https://www.googleapis.com/auth/drive' })
+const drive = google.drive({ version: 'v3', auth })
+const client = new GoogleDriveClient({ drive })
+
+const result = await client.listFiles()
+
+const file = result.files[0]!
+const metadata = await client.getFile({ fileId: file.id })
+const content = await client.exportFile({
+  fileId: file.id,
+  mimeType: 'application/pdf'
+})
+```
+
+----------------------------------------
+
+TITLE: Using Google Custom Search Client
+DESCRIPTION: Example of initializing and using the GoogleCustomSearchClient to perform a search query. Requires GOOGLE_API_KEY and GOOGLE_CSE_ID environment variables to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/google-custom-search.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { GoogleCustomSearchClient } from '@agentic/google-custom-search'
+
+const googleCustomSearch = new GoogleCustomSearchClient()
+const results = await googleCustomSearch.search('latest news about openai')
+```
+
+----------------------------------------
+
+TITLE: Basic Usage of SerperClient for Google Search
+DESCRIPTION: Example demonstrating how to import and instantiate the SerperClient class and perform a basic Google search. Requires SERPER_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/serper.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { SerperClient } from '@agentic/serper'
+
+const serper = new SerperClient()
+const res = await serper.search('latest news')
+```
+
+----------------------------------------
+
+TITLE: Importing and Using Calculator Tool in GenAIScript
+DESCRIPTION: This snippet demonstrates how to import the calculator tool from the @agentic package, define it as a tool using defTool, and use it to solve an arithmetic problem. The LLM can then invoke this tool to perform calculations.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/genaiscript.mdx#2025-04-11_snippet_0
+
+LANGUAGE: typescript
+CODE:
+```
+import { calculator } from '@agentic/calculator'
+defTool(calculator)
+
+$`Answer the following arithmetic question: How much is 11 + 4? then divide by 3?`
+```
+
+----------------------------------------
+
+TITLE: Integrating WeatherClient with xsAI SDK in TypeScript
+DESCRIPTION: Example script demonstrating how to use the xsAI SDK with the Agentic weather tool to query weather information. The code loads environment variables, initializes the WeatherClient, and uses createXSAITools to generate a response about weather in San Francisco.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/xsai.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import 'dotenv/config'
+
+import { WeatherClient } from '@agentic/weather'
+import { createXSAITools } from '@agentic/xsai'
+import { generateText } from 'xsai'
+
+async function main() {
+  const weather = new WeatherClient()
+
+  const result = await generateText({
+    apiKey: process.env.OPENAI_API_KEY!,
+    baseURL: 'https://api.openai.com/v1/',
+    model: 'gpt-4o-mini',
+    tools: await createXSAITools(weather),
+    toolChoice: 'required',
+    temperature: 0,
+    messages: [
+      {
+        role: 'system',
+        content: 'You are a helpful assistant. Be as concise as possible.'
+      },
+      { role: 'user', content: 'What is the weather in San Francisco?' }
+    ]
+  })
+
+  console.log(JSON.stringify(result, null, 2))
+}
+
+await main()
+```
+
+----------------------------------------
+
+TITLE: Using PredictLeadsClient to fetch company events
+DESCRIPTION: Example demonstrating how to initialize the PredictLeadsClient and use it to retrieve company events by domain. The client uses environment variables for authentication.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/predict-leads.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { PredictLeadsClient } from '@agentic/predict-leads'
+
+const predictLeads = new PredictLeadsClient()
+const res = await predictLeads.getCompanyEvents({ domain: 'apple.com' })
+```
+
+----------------------------------------
+
+TITLE: Implementing Weather Query with Genkit and OpenAI
+DESCRIPTION: Example implementation showing how to use Genkit with OpenAI integration to query weather information. Demonstrates configuration of AI tools and weather client integration.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/genkit.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import 'dotenv/config'
+
+import { createGenkitTools } from '@agentic/genkit'
+import { WeatherClient } from '@agentic/stdlib'
+import { genkit } from 'genkit'
+import { gpt4oMini, openAI } from 'genkitx-openai'
+
+async function main() {
+  const weather = new WeatherClient()
+
+  const ai = genkit({
+    plugins: [openAI()]
+  })
+
+  const result = await ai.generate({
+    model: gpt4oMini,
+    tools: createGenkitTools(ai, weather),
+    system: 'You are a helpful assistant. Be as concise as possible.',
+    prompt: 'What is the weather in San Francisco?'
+  })
+
+  console.log(result)
+}
+
+await main()
+```
+
+----------------------------------------
+
+TITLE: Basic OpenAI Weather Integration
+DESCRIPTION: Example of using Agentic with OpenAI's chat completions API to fetch weather data for San Francisco using function calling
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/openai.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { WeatherClient } from '@agentic/stdlib'
+import OpenAI from 'openai'
+
+const weather = new WeatherClient()
+const openai = new OpenAI()
+
+const messages: OpenAI.ChatCompletionMessageParam[] = [
+  {
+    role: 'system',
+    content: 'You are a helpful assistant. Be as concise as possible.'
+  },
+  { role: 'user', content: 'What is the weather in San Francisco?' }
+]
+
+const res = await openai.chat.completions.create({
+  messages,
+  model: 'gpt-4o-mini',
+  temperature: 0,
+  tools: weather.functions.toolSpecs,
+  tool_choice: 'required'
+})
+const message = res.choices[0]?.message!
+console.log(JSON.stringify(message, null, 2))
+assert(message.tool_calls?.[0]?.function?.name === 'get_current_weather')
+
+const fn = weather.functions.get('get_current_weather')!
+
+const toolArgs = message.tool_calls[0].function.arguments
+const toolResult = await fn(toolArgs)
+console.log(JSON.stringify(toolResult, null, 2))
+```
+
+----------------------------------------
+
+TITLE: Using TwilioClient to Send Messages
+DESCRIPTION: Example of how to initialize the TwilioClient and send a message using the Twilio Conversations API. Requires TWILIO_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/twilio.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { TwilioClient } from '@agentic/twilio'
+
+const twilio = new TwilioClient()
+const res = await twilio.sendMessage({
+  conversationId: 'TODO',
+  text: 'Hello, world'
+})
+```
+
+----------------------------------------
+
+TITLE: Using JinaClient for URL Reading and Search
+DESCRIPTION: Example demonstrating how to initialize the JinaClient and use it for reading URLs and performing web searches. Shows basic usage of readUrl and search methods with JSON output option.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/jina.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { JinaClient } from '@agentic/jina'
+
+const jina = new JinaClient()
+const res0 = await jina.readUrl('https://example.com')
+const res1 = await jina.search({ query: 'latest news', json: true })
+```
+
+----------------------------------------
+
+TITLE: Using the YouTube Client to Search Videos
+DESCRIPTION: Example of importing and using the YouTubeClient class to search for YouTube videos with a specific query. The client uses the YouTube API key from environment variables.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/youtube.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { YouTubeClient } from '@agentic/youtube'
+
+const youtube = new YouTubeClient()
+const res = await youtube.searchVideos({
+  query: 'cute kittens'
+})
+```
+
+----------------------------------------
+
+TITLE: Using the SearxNG Client to Search Multiple Engines
+DESCRIPTION: Example of how to import and use the SearxngClient to perform a search across multiple engines (Google, Reddit, and HackerNews) with a specific query.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/searxng.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { SearxngClient } from '@agentic/searxng'
+
+const searxng = new SearxngClient()
+const res = await searxng.search({
+  query: 'us election',
+  engines: ['google', 'reddit', 'hackernews']
+})
+```
+
+----------------------------------------
+
+TITLE: Basic Bing Search Implementation
+DESCRIPTION: Example showing how to initialize the BingClient and perform a basic search query. Requires BING_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/bing.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { BingClient } from '@agentic/bing'
+
+const bing = new BingClient()
+const res = await bing.search('latest news')
+```
+
+----------------------------------------
+
+TITLE: Initializing and Using Dexa API Client in TypeScript
+DESCRIPTION: Basic example of how to import the DexaClient, create an instance, and perform a search operation. This snippet demonstrates the core functionality of the Dexa API client.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/dexa.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { DexaClient } from '@agentic/dexa'
+
+const dexa = new DexaClient()
+const res = await dexa.search('latest news')
+```
+
+----------------------------------------
+
+TITLE: Using BraveSearchClient in TypeScript
+DESCRIPTION: Example of how to import and use the BraveSearchClient class from the @agentic/brave-search package to perform a search query.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/brave-search.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { BraveSearchClient } from '@agentic/brave-search'
+
+const braveSearch = new BraveSearchClient()
+const res = await braveSearch.search('latest news about openai')
+```
+
+----------------------------------------
+
+TITLE: Using WeatherClient to Fetch Current Weather
+DESCRIPTION: Example code showing how to import and use the WeatherClient class to fetch current weather data for a specific location. Requires WEATHER_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/weather.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { WeatherClient } from '@agentic/weather'
+
+const weather = new WeatherClient()
+const res = await weather.getCurrentWeather('new york')
+```
+
+----------------------------------------
+
+TITLE: Using ProxycurlClient to fetch LinkedIn data
+DESCRIPTION: Example of how to use the ProxycurlClient to retrieve company and person data from LinkedIn. It demonstrates importing the client, initializing it, and making API calls to fetch data for a company and an individual.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/proxycurl.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { ProxycurlClient } from '@agentic/proxycurl'
+
+const proxycurl = new ProxycurlClient()
+const company = await proxycurl.getLinkedInCompany({
+  url: 'https://linkedin.com/company/apple'
+})
+
+const person = await proxycurl.getLinkedInPerson({
+  url: 'https://linkedin.com/in/fisch2'
+})
+```
+
+----------------------------------------
+
+TITLE: Using Perigon Client for Article Search
+DESCRIPTION: Example of how to use the PerigonClient to search for news articles. It demonstrates importing the client, initializing it, and making a search query.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/perigon.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { PerigonClient } from '@agentic/perigon'
+
+const perigon = new PerigonClient()
+const res = await perigon.searchArticles({
+  q: '"elon musk" AND tesla'
+})
+```
+
+----------------------------------------
+
+TITLE: Using HunterClient to find emails
+DESCRIPTION: Example demonstrating how to initialize the Hunter client and use it to search for emails by domain and find a specific email by name and domain. Requires the HUNTER_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/hunter.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { HunterClient } from '@agentic/hunter'
+
+const hunter = new HunterClient()
+const res0 = await hunter.domainSearch('apple.com')
+const res1 = await hunter.emailFinder({
+  domain: 'transitivebullsh.it',
+  first_name: 'travis',
+  last_name: 'fischer'
+})
+```
+
+----------------------------------------
+
+TITLE: Fetching a Gravatar profile with GravatarClient
+DESCRIPTION: Example demonstrating how to import the GravatarClient class and retrieve a Gravatar profile using an email address as the identifier.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/gravatar.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { GravatarClient } from '@agentic/gravatar'
+
+const gravatar = new GravatarClient()
+const profile = await gravatar.getProfileByIdentifier('my-email@example.com')
+```
+
+----------------------------------------
+
+TITLE: Sending a Message with SlackClient
+DESCRIPTION: Example of importing and using the SlackClient to send a message to a Slack channel. This requires a SLACK_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/slack.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { SlackClient } from '@agentic/slack'
+
+const slack = new SlackClient()
+const res = await slack.sendMessage({
+  text: 'hello',
+  channel: 'general'
+})
+```
+
+----------------------------------------
+
+TITLE: Using Open-Meteo Client for Weather Forecast
+DESCRIPTION: Example of importing and using the OpenMeteoClient to fetch weather forecast data for a specific location. The client is initialized and used to get forecast data for San Francisco.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/open-meteo.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { OpenMeteoClient } from '@agentic/open-meteo'
+
+const openMeteo = new OpenMeteoClient()
+const res = await openMeteo.getForecast({
+  location: {
+    name: 'San Francisco'
+  }
+})
+```
+
+----------------------------------------
+
+TITLE: Using PolygonClient in TypeScript
+DESCRIPTION: Example of importing and using the PolygonClient class to fetch ticker details for Apple Inc. (AAPL). Requires setting the POLYGON_API_KEY environment variable.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/polygon.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { PolygonClient } from '@agentic/polygon'
+
+const polygon = new PolygonClient()
+const res = await polygon.tickerDetails({ ticker: 'AAPL' })
+```
+
+----------------------------------------
+
+TITLE: Basic Tavily Search Implementation
+DESCRIPTION: Example showing how to import the TavilyClient, instantiate it, and perform a basic web search. This code requires a TAVILY_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/tavily.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { TavilyClient } from '@agentic/tavily'
+
+const tavily = new TavilyClient()
+const res = await tavily.search('latest news')
+```
+
+----------------------------------------
+
+TITLE: Using Apollo Client for Person Enrichment in TypeScript
+DESCRIPTION: Example of how to use the ApolloClient class to enrich person data. It demonstrates importing the client, initializing it, and making a request to enrich a person's data using their LinkedIn URL.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/apollo.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { ApolloClient } from '@agentic/apollo'
+
+const apollo = new ApolloClient()
+const res = await apollo.enrichPerson({
+  linkedin_url: 'https://linkedin.com/in/fisch2'
+})
+```
+
+----------------------------------------
+
+TITLE: Using RocketReach API to Look Up a Person by LinkedIn URL
+DESCRIPTION: Example of initializing the RocketReach client and performing a person lookup using a LinkedIn profile URL. Requires the ROCKETREACH_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/rocketreach.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { RocketReachClient } from '@agentic/rocketreach'
+
+const rocketreach = new RocketReachClient()
+const res = await rocketreach.lookupPerson({
+  linkedin_url: 'https://www.linkedin.com/in/fisch2'
+})
+```
+
+----------------------------------------
+
+TITLE: Using ClearbitClient for Company Enrichment
+DESCRIPTION: Example of importing and using the ClearbitClient to enrich company data. Requires a CLEARBIT_API_KEY environment variable to be set for authentication.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/clearbit.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { ClearbitClient } from '@agentic/clearbit'
+
+const clearbit = new ClearbitClient()
+const res = await clearbit.companyEnrichment({ domain: 'apple.com' })
+```
+
+----------------------------------------
+
+TITLE: Using ArXivClient to search for research articles
+DESCRIPTION: Example of how to use the ArXivClient class to search for machine learning articles on ArXiv. It demonstrates importing the client, initializing it without an API key, and performing a search with specific parameters.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/arxiv.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { ArXivClient } from '@agentic/arxiv'
+
+// No API is required to use the ArXiv API
+const arxiv = new ArXivClient()
+const results = await arxiv.search({
+  query: 'machine learning',
+  maxResults: 10
+})
+```
+
+----------------------------------------
+
+TITLE: Using Novu API Client in TypeScript
+DESCRIPTION: Example of how to import and use the NovuClient class from the @agentic/novu package. It demonstrates creating a client instance and performing a search operation.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/novu.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { NovuClient } from '@agentic/novu'
+
+const novu = new NovuClient()
+const res = await novu.search('latest news')
+```
+
+----------------------------------------
+
+TITLE: Using WikipediaClient to search and get page summaries
+DESCRIPTION: Example showing how to import and use the WikipediaClient class to search for Wikipedia articles and retrieve page summaries. The example demonstrates searching for 'steve jobs' and getting a summary of the 'Elon_Musk' page.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/wikipedia.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { WikipediaClient } from '@agentic/wikipedia'
+
+const wikipedia = new WikipediaClient()
+const res0 = await wikipedia.search({ query: 'steve jobs' })
+const res1 = await wikipedia.getPageSummary({ title: 'Elon_Musk' })
+```
+
+----------------------------------------
+
+TITLE: Initializing and Using NotionClient
+DESCRIPTION: Example of importing, instantiating the NotionClient class, and making an API call to get authenticated user information. Requires NOTION_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/notion.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { NotionClient } from '@agentic/notion'
+
+const notion = new NotionClient()
+const authenticatedUser = await notion.getSelf()
+```
+
+----------------------------------------
+
+TITLE: Basic usage of ExaClient for web search
+DESCRIPTION: Example demonstrating how to import and initialize the ExaClient and perform a basic web search query. This requires the EXA_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/exa.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { ExaClient } from '@agentic/exa'
+
+const exa = new ExaClient()
+const res = await exa.search('latest news')
+```
+
+----------------------------------------
+
+TITLE: Using ZoomInfo Client for Contact Enrichment in TypeScript
+DESCRIPTION: This code snippet demonstrates how to use the ZoomInfoClient to enrich contact information. It imports the client, initializes it, and makes a request to enrich a contact using an email address.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/zoominfo.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { ZoomInfoClient } from '@agentic/zoominfo'
+
+const zoomInfo = new ZoomInfoClient()
+const res = await zoomInfo.enrichContact({
+  emailAddress: 'travis@transitivebullsh.it'
+})
+```
+
+----------------------------------------
+
+TITLE: Using Wolfram Alpha Client
+DESCRIPTION: Example of importing and using the WolframAlphaClient to perform a search query. Requires WOLFRAM_APP_ID environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/wolfram-alpha.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { WolframAlphaClient } from '@agentic/wolfram-alpha'
+
+const wolframAlpha = new WolframAlphaClient()
+const res = await wolframAlpha.search('latest news')
+```
+
+----------------------------------------
+
+TITLE: Using SerpAPIClient for Google search in TypeScript
+DESCRIPTION: Example of how to use the SerpAPIClient class to perform a Google search. It demonstrates importing the client, instantiating it, and making a search request.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/serpapi.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { SerpAPIClient } from '@agentic/serpapi'
+
+const serpapi = new SerpAPIClient()
+const res = await serpapi.search('latest news')
+```
+
+----------------------------------------
+
+TITLE: Using HackerNewsClient in TypeScript
+DESCRIPTION: Example of how to use the HackerNewsClient to search for items with specific criteria. It demonstrates creating a client instance and making a search request with query parameters.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/hacker-news.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { HackerNewsClient } from '@agentic/hacker-news'
+
+const hn = new HackerNewsClient()
+const res = await hn.searchItems({
+  query: 'example query',
+  tags: ['story'],
+  numericFilters: ['points>100']
+})
+```
+
+----------------------------------------
+
+TITLE: Using RedditClient to fetch subreddit posts
+DESCRIPTION: TypeScript example demonstrating how to use the RedditClient to fetch hot posts from the AskReddit subreddit. It shows the initialization of the client and making a request to get posts.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/reddit.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { RedditClient } from '@agentic/reddit'
+
+const reddit = new RedditClient()
+const result = await reddit.getSubredditPosts({
+  subreddit: 'AskReddit',
+  type: 'hot',
+  limit: 10
+})
+```
+
+----------------------------------------
+
+TITLE: Using Midjourney Client to Generate Images
+DESCRIPTION: Example showing how to import and initialize the MidjourneyClient and generate an image using the imagine method with a text prompt.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/midjourney.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { MidjourneyClient } from '@agentic/midjourney'
+
+const midjourney = new MidjourneyClient()
+const res = await midjourney.imagine({
+  prompt: 'beautiful sunset over the ocean, oil painting, monet'
+})
+```
+
+----------------------------------------
+
+TITLE: Using GoogleDocsClient in TypeScript
+DESCRIPTION: Example of how to use the GoogleDocsClient class to interact with Google Docs. This snippet demonstrates authentication, client initialization, and retrieving a document. It requires proper setup of Google Cloud credentials.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/google-docs.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { GoogleDriveClient } from '@agentic/google-drive'
+import { authenticate } from '@google-cloud/local-auth'
+import { google } from 'googleapis'
+
+// (in a real app, store these auth credentials and reuse them)
+const auth = await authenticate({
+  scopes: ['https://www.googleapis.com/auth/documents.readonly'],
+  keyfilePath: process.env.GOOGLE_CREDENTIALS_PATH
+})
+const docs = google.docs({ version: 'v1', auth })
+const client = new GoogleDocsClient({ docs })
+
+const document = await client.getDocument({ documentId: 'TODO' })
+console.log(document)
+```
+
+----------------------------------------
+
+TITLE: Querying Wikidata Entity by ID using WikidataClient
+DESCRIPTION: Example of importing the WikidataClient class from the @agentic/wikidata package and using it to retrieve entity information by ID. The example fetches data for Elon Musk (Q317521).
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/wikidata.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { WikidataClient } from '@agentic/wikidata'
+
+const wikidata = new WikidataClient()
+const res = await wikidata.getEntityById('Q317521') // elon musk
+```
+
+----------------------------------------
+
+TITLE: Running the Mastra weather example
+DESCRIPTION: Shell commands for cloning the repository, installing dependencies, setting up API keys in the environment, and running the example TypeScript file.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/mastra.mdx#2025-04-11_snippet_7
+
+LANGUAGE: bash
+CODE:
+```
+git clone git@github.com:transitive-bullshit/agentic.git
+cd agentic
+pnpm install
+echo 'WEATHER_API_KEY=your-key' >> .env
+echo 'OPENAI_API_KEY=your-key' >> .env
+npx tsx examples/mastra/bin/weather.ts
+```
+
+----------------------------------------
+
+TITLE: Implementing LlamaIndex Weather Agent
+DESCRIPTION: Example of creating an AI agent using LlamaIndex and the Weather API to handle weather-related queries. Demonstrates tool creation, agent configuration, and query handling.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/llamaindex.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import 'dotenv/config'
+
+import { createLlamaIndexTools } from '@agentic/llamaindex'
+import { WeatherClient } from '@agentic/stdlib'
+import { OpenAI, OpenAIAgent } from 'llamaindex'
+
+async function main() {
+  const weather = new WeatherClient()
+
+  const tools = createLlamaIndexTools(weather)
+  const agent = new OpenAIAgent({
+    llm: new OpenAI({ model: 'gpt-4o-mini', temperature: 0 }),
+    systemPrompt: 'You are a helpful assistant. Be as concise as possible.',
+    tools
+  })
+
+  const response = await agent.chat({
+    message: 'What is the weather in San Francisco?'
+  })
+
+  console.log(response.message.content)
+}
+
+await main()
+```
+
+----------------------------------------
+
+TITLE: API Integration Tools List in Markdown Table Format
+DESCRIPTION: A markdown table listing available API integrations, their package names, documentation links, and brief descriptions. Includes tools for various services like Midjourney, Notion, Twitter, and more.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/readme.md#2025-04-11_snippet_4
+
+LANGUAGE: markdown
+CODE:
+```
+| [Midjourney](https://www.imagineapi.dev) | `@agentic/midjourney` | [docs](https://agentic.so/tools/midjourney) | Unofficial Midjourney client for generative images. |
+| [McpTools](https://modelcontextprotocol.io) | `@agentic/mcp` | [docs](https://agentic.so/tools/mcp) | Model Context Protocol (MCP) client, supporting any MCP server. Use [createMcpTools](https://agentic.so/tools/mcp) to spawn or connect to an MCP server. |
+[...additional entries...]
+```
+
+----------------------------------------
+
+TITLE: Using TwitterClient to Create a Tweet
+DESCRIPTION: Example of how to use the TwitterClient class to create a tweet. It demonstrates creating a raw client using Nango for OAuth support, initializing the TwitterClient, and posting a tweet.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/twitter.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { TwitterClient, createTwitterV2Client } from '@agentic/twitter'
+
+// Requires Nango connection ID and callback URL environment variables
+const rawClient = await createTwitterV2Client()
+
+const twitter = new TwitterClient({ client: rawClient })
+const res = await twitter.createTweet({
+  text: 'hello, world'
+})
+```
+
+----------------------------------------
+
+TITLE: Using DuckDuckGo Search Client
+DESCRIPTION: Example of initializing the DuckDuckGo client and performing a search query. No API key is required to use this service.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/duck-duck-go.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { DuckDuckGoClient } from '@agentic/duck-duck-go'
+
+// No API is required to use the DuckDuckGo API
+const duckDuckGo = new DuckDuckGoClient()
+const results = await duckDuckGo.search({
+  query: 'latest news about AI'
+})
+```
+
+----------------------------------------
+
+TITLE: Using SocialDataClient in TypeScript
+DESCRIPTION: Example of how to import and use the SocialDataClient class to fetch user data by username from the Social Data Tools API.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/social-data.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { SocialDataClient } from '@agentic/social-data'
+
+const sd = new SocialDataClient()
+const res = await sd.getUserByUsername('transitive_bs')
+```
+
+----------------------------------------
+
+TITLE: Basic Profile Search with LeadMagic Client
+DESCRIPTION: Example of initializing the LeadMagic client and performing a profile search by LinkedIn username. Requires LEADMAGIC_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/leadmagic.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { LeadMagicClient } from '@agentic/leadmagic'
+
+const leadmagic = new LeadMagicClient()
+const res = await leadmagic.profileSearch({
+  linkedinUsername: 'fisch2'
+})
+```
+
+----------------------------------------
+
+TITLE: Setting Up and Running the Dexter Weather Example
+DESCRIPTION: Shell commands for cloning the repository, installing dependencies, setting up the required API keys in a .env file, and running the example script with tsx. Requires both WeatherAPI and OpenAI API keys.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/dexter.mdx#2025-04-11_snippet_4
+
+LANGUAGE: sh
+CODE:
+```
+git clone git@github.com:transitive-bullshit/agentic.git
+cd agentic
+pnpm install
+echo 'WEATHER_API_KEY=your-key' >> .env
+echo 'OPENAI_API_KEY=your-key' >> .env
+npx tsx examples/dexter/bin/weather.ts
+```
+
+----------------------------------------
+
+TITLE: Using TypeformClient to fetch responses and insights
+DESCRIPTION: Example of how to use the TypeformClient class to fetch form responses and insights. It demonstrates importing the client, initializing it, and calling methods to retrieve data for a specific form ID.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/typeform.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { TypeformClient } from '@agentic/typeform'
+
+const typeform = new TypeformClient()
+
+const responses = await typeform.getResponsesForForm({
+  formId: 'TODO'
+})
+
+const insights = await typeform.getInsightsForForm({
+  formId: 'TODO'
+})
+```
+
+----------------------------------------
+
+TITLE: Using the Calculator Function
+DESCRIPTION: Example of importing and using the calculator function to evaluate a mathematical expression. The function takes an object with an 'expr' property containing the expression to evaluate.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/calculator.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { calculator } from '@agentic/calculator'
+
+const res = await calculator({ expr: '1 + 1' })
+```
+
+----------------------------------------
+
+TITLE: Basic E2B Code Execution Example
+DESCRIPTION: Demonstrates how to use the e2b function to execute Python code in the sandbox environment. Shows a simple example of printing 'Hello, World'.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/e2b.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { e2b } from '@agentic/e2b'
+
+const res = await e2b({ code: 'print("Hello, World")' })
+```
+
+----------------------------------------
+
+TITLE: Installing Required Dependencies
+DESCRIPTION: Commands for installing the necessary packages using different package managers (npm, yarn, pnpm)
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/openai.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/stdlib openai
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/stdlib openai
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/stdlib openai
+```
+
+----------------------------------------
+
+TITLE: Installing LangChain Dependencies
+DESCRIPTION: Package installation commands for different package managers (npm, yarn, pnpm) to set up LangChain integration
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/langchain.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/langchain @langchain/core langchain
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/langchain @langchain/core langchain
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/langchain @langchain/core langchain
+```
+
+----------------------------------------
+
+TITLE: Using People Data Labs Client for Company Lookup
+DESCRIPTION: Example of how to use the PeopleDataLabsClient to perform a company lookup using the website as a query parameter. This snippet demonstrates the basic usage of the client.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/people-data-labs.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { PeopleDataLabsClient } from '@agentic/people-data-labs'
+
+const pdl = new PeopleDataLabsClient()
+const res = await pdl.companyLookup({
+  query: {
+    website: 'apple.com'
+  }
+})
+```
+
+----------------------------------------
+
+TITLE: Markdown Table of Agentic Tools
+DESCRIPTION: A structured table showing available tools, their packages, documentation links, and descriptions. Includes services like Airtable, Apollo, ArXiv, and various search engines.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/readme.md#2025-04-11_snippet_3
+
+LANGUAGE: markdown
+CODE:
+```
+| Service / Tool                                                                  | Package                         | Docs                                                  | Description                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Airtable](https://airtable.com/developers/web/api/introduction)                | `@agentic/airtable`             | [docs](https://agentic.so/tools/airtable)             | No-code spreadsheets, CRM, and database.                                                                                                                                                                                                                       |
+| [Apollo](https://docs.apollo.io)                                                | `@agentic/apollo`               | [docs](https://agentic.so/tools/apollo)               | B2B person and company enrichment API.                                                                                                                                                                                                                         |
+```
+
+----------------------------------------
+
+TITLE: Using WeatherClient as an LLM Tool with Vercel AI SDK
+DESCRIPTION: Shows how to use the WeatherClient from Agentic as an LLM-based tool with Vercel's AI SDK. The adapter createAISDKTools converts the client into a format compatible with the AI SDK's tool interface.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/readme.md#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+// sdk-specific imports
+import { openai } from '@ai-sdk/openai'
+import { generateText } from 'ai'
+import { createAISDKTools } from '@agentic/ai-sdk'
+
+// sdk-agnostic imports
+import { WeatherClient } from '@agentic/stdlib'
+
+const weather = new WeatherClient()
+
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  // this is the key line which uses the `@agentic/ai-sdk` adapter
+  tools: createAISDKTools(weather),
+  toolChoice: 'required',
+  prompt: 'What is the weather in San Francisco?'
+})
+
+console.log(result.toolResults[0])
+```
+
+----------------------------------------
+
+TITLE: Using WeatherClient as a TypeScript Class
+DESCRIPTION: This snippet demonstrates how to use the WeatherClient from Agentic as a normal TypeScript class. It requires an API key from weatherapi.com set in the environment variables.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/usage.mdx#2025-04-11_snippet_0
+
+LANGUAGE: typescript
+CODE:
+```
+import { WeatherClient } from '@agentic/stdlib'
+
+// Requires `process.env.WEATHER_API_KEY` (free from weatherapi.com)
+const weather = new WeatherClient()
+
+const result = await weather.getCurrentWeather({
+  q: 'San Francisco'
+})
+console.log(result)
+```
+
+----------------------------------------
+
+TITLE: Setting Up Project Environment
+DESCRIPTION: Commands for cloning the repository, installing dependencies, and setting up environment variables for weather and OpenAI API keys.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/genkit.mdx#2025-04-11_snippet_2
+
+LANGUAGE: sh
+CODE:
+```
+git clone git@github.com:transitive-bullshit/agentic.git
+cd agentic
+pnpm install
+echo 'WEATHER_API_KEY=your-key' >> .env
+echo 'OPENAI_API_KEY=your-key' >> .env
+npx tsx examples/genkit/bin/weather.ts
+```
+
+----------------------------------------
+
+TITLE: Basic Diffbot Client Usage Example
+DESCRIPTION: A simple example demonstrating how to import the DiffbotClient class, instantiate it, and analyze a URL. Requires a DIFFBOT_API_KEY environment variable to be set.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/diffbot.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { DiffbotClient } from '@agentic/diffbot'
+
+const diffbot = new DiffbotClient()
+const res = await diffbot.analyzeUrl('https://example.com')
+```
+
+----------------------------------------
+
+TITLE: Installing All AI Tools (@agentic/stdlib) with npm/yarn/pnpm
+DESCRIPTION: This snippet demonstrates how to install all AI tools using the @agentic/stdlib package with different package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/quickstart.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/stdlib
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/stdlib
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/stdlib
+```
+
+----------------------------------------
+
+TITLE: McpToolsOptions Interface Definition
+DESCRIPTION: TypeScript interface that defines the configuration options for creating MCP tools via the createMcpTools function. This includes settings for server connection, tool filtering, and response formatting.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/mcp.mdx#2025-04-11_snippet_4
+
+LANGUAGE: typescript
+CODE:
+```
+export interface McpToolsOptions {
+  /**
+   * Provide a name for this client which will be its namespace for all tools and prompts.
+   */
+  name: string
+
+  /**
+   * Provide a version number for this client (defaults to 1.0.0).
+   */
+  version?: string
+
+  /**
+   * If you already have an MCP transport you'd like to use, pass it here to connect to the server.
+   */
+  transport?: Transport
+
+  /**
+   * Start a local server process using the stdio MCP transport.
+   */
+  serverProcess?: StdioServerParameters
+
+  /**
+   * Connect to a remote server process using the SSE MCP transport.
+   */
+  serverUrl?: string
+
+  /**
+   * Return tool responses in raw MCP form instead of processing them for Genkit compatibility.
+   */
+  rawToolResponses?: boolean
+
+  /**
+   * An optional filter function to determine which tools should be enabled.
+   *
+   * By default, all tools available on the MCP server will be enabled, but you
+   * can use this to filter a subset of those tools.
+   */
+  toolsFilter?: McpToolsFilter
+}
+```
+
+----------------------------------------
+
+TITLE: Installing Dexa Dexter Adapter with npm/yarn/pnpm
+DESCRIPTION: This snippet shows how to install the Dexa Dexter adapter and its dependencies using different package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/quickstart.mdx#2025-04-11_snippet_8
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/dexter @dexaai/dexter
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/dexter @dexaai/dexter
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/dexter @dexaai/dexter
+```
+
+----------------------------------------
+
+TITLE: Setting Up and Running GenAIScript Calculator Example
+DESCRIPTION: Shell commands to clone the agentic repository, install dependencies, set up the OpenAI API key in a .env file, and run the calculator example with GenAIScript. An OpenAI API key is required for this example to work.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/genaiscript.mdx#2025-04-11_snippet_1
+
+LANGUAGE: shell
+CODE:
+```
+git clone git@github.com:transitive-bullshit/agentic.git
+cd agentic
+pnpm install
+echo 'OPENAI_API_KEY=your-key' >> .env
+npx genaiscript examples/genaiscript/calculator.genai.mts
+```
+
+----------------------------------------
+
+TITLE: Using @agentic/dexter with Weather API Integration
+DESCRIPTION: Example demonstrating how to use the @agentic/dexter package with the WeatherClient to create an AI runner that can fetch weather information. The code initializes a runner with GPT-4o-mini and system instructions.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/dexter.mdx#2025-04-11_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import 'dotenv/config'
+
+import { createDexterFunctions } from '@agentic/dexter'
+import { WeatherClient } from '@agentic/weather'
+import { ChatModel, createAIRunner } from '@dexaai/dexter'
+
+async function main() {
+  const weather = new WeatherClient()
+
+  const runner = createAIRunner({
+    chatModel: new ChatModel({
+      params: { model: 'gpt-4o-mini', temperature: 0 }
+      // debug: true
+    }),
+    functions: createDexterFunctions(weather),
+    systemMessage: 'You are a helpful assistant. Be as concise as possible.'
+  })
+
+  const result = await runner('What is the weather in San Francisco?')
+  console.log(result)
+}
+
+await main()
+```
+
+----------------------------------------
+
+TITLE: Using AirtableClient in TypeScript
+DESCRIPTION: Example of how to use the AirtableClient to list bases, tables, and search records. This snippet demonstrates initializing the client, fetching bases and tables, and performing a search operation.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/airtable.mdx#2025-04-11_snippet_1
+
+LANGUAGE: typescript
+CODE:
+```
+import { AirtableClient } from '@agentic/airtable'
+
+const airtable = new AirtableClient()
+const { bases } = await airtable.listBases()
+console.log('bases', tables)
+
+const baseId = bases[0]!.id
+const tables = await airtable.listTables({ baseId })
+console.log('tables', tables)
+
+const tableId = tables[0]!.id
+const searchResults = await airtable.searchRecords({
+  baseId,
+  tableId,
+  searchTerm: 'Travis'
+})
+console.log('search results', searchResults)
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/google-docs Package
+DESCRIPTION: Commands for installing the @agentic/google-docs package and its dependencies using npm, yarn, or pnpm. This snippet shows how to add the necessary packages to your project.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/google-docs.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/google-docs googleapis @google-cloud/local-auth
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/google-docs googleapis @google-cloud/local-auth
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/google-docs googleapis @google-cloud/local-auth
+```
+
+----------------------------------------
+
+TITLE: Running the Weather Example with Agentic and Vercel AI SDK
+DESCRIPTION: Shell commands to clone the Agentic repository, install dependencies, set up required API keys, and run the weather example using TypeScript execution via tsx.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/ai-sdk.mdx#2025-04-11_snippet_7
+
+LANGUAGE: bash
+CODE:
+```
+git clone git@github.com:transitive-bullshit/agentic.git
+cd agentic
+pnpm install
+echo 'WEATHER_API_KEY=your-key' >> .env
+echo 'OPENAI_API_KEY=your-key' >> .env
+npx tsx examples/ai-sdk/bin/weather.ts
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/google-drive Package with npm
+DESCRIPTION: Command to install the @agentic/google-drive package and its dependencies using npm.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/google-drive.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/google-drive googleapis google-auth-library
+```
+
+----------------------------------------
+
+TITLE: Setting Up Project Environment
+DESCRIPTION: Commands for cloning the repository, installing dependencies, and setting up required API keys in the environment file
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/langchain.mdx#2025-04-11_snippet_2
+
+LANGUAGE: sh
+CODE:
+```
+git clone git@github.com:transitive-bullshit/agentic.git
+cd agentic
+pnpm install
+echo 'WEATHER_API_KEY=your-key' >> .env
+echo 'OPENAI_API_KEY=your-key' >> .env
+npx tsx examples/langchain/bin/weather.ts
+```
+
+----------------------------------------
+
+TITLE: Running OpenAPI to TypeScript Conversion with Different Installation Methods
+DESCRIPTION: Shows three different ways to execute the OpenAPI to TypeScript conversion tool: using tsx for local development, running directly with npx, or installing globally via npm. Each command converts an OpenAPI spec file to a generated TypeScript client.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/packages/openapi-to-ts/readme.md#2025-04-11_snippet_0
+
+LANGUAGE: sh
+CODE:
+```
+# local development
+tsx bin/openapi-to-ts.ts fixtures/openapi/3.0/notion.json -o fixtures/generated
+
+# published version
+npx @agentic/openapi-to-ts fixtures/openapi/3.0/notion.json -o fixtures/generated
+
+# npm install -g version
+npm install -g @agentic/openapi-to-ts
+openapi-to-ts fixtures/openapi/3.0/notion.json -o fixtures/generated
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/polygon Package
+DESCRIPTION: Commands for installing the @agentic/polygon package using different package managers (npm, yarn, pnpm).
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/polygon.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/polygon
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/polygon
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/polygon
+```
+
+----------------------------------------
+
+TITLE: Running the Weather Example with xsAI SDK
+DESCRIPTION: Steps to clone the repository, install dependencies, set up environment variables for API keys, and run the weather example using the xsAI SDK. Requires both OpenAI and weatherapi.com API keys.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/xsai.mdx#2025-04-11_snippet_7
+
+LANGUAGE: sh
+CODE:
+```
+git clone git@github.com:transitive-bullshit/agentic.git
+cd agentic
+pnpm install
+echo 'WEATHER_API_KEY=your-key' >> .env
+echo 'OPENAI_API_KEY=your-key' >> .env
+npx tsx examples/xsai/bin/weather.ts
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/twitter Package
+DESCRIPTION: Commands for installing the @agentic/twitter package using npm, yarn, or pnpm package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/twitter.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/twitter
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/twitter
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/twitter
+```
+
+----------------------------------------
+
+TITLE: Installing Mastra Adapter with npm/yarn/pnpm
+DESCRIPTION: This snippet shows how to install the Mastra adapter and its dependencies using different package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/quickstart.mdx#2025-04-11_snippet_4
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/mastra @mastra/core
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/mastra @mastra/core
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/mastra @mastra/core
+```
+
+----------------------------------------
+
+TITLE: Project Setup Commands
+DESCRIPTION: Shell commands for setting up the project, including cloning the repository and configuring environment variables
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/openai.mdx#2025-04-11_snippet_2
+
+LANGUAGE: sh
+CODE:
+```
+git clone git@github.com:transitive-bullshit/agentic.git
+cd agentic
+pnpm install
+echo 'WEATHER_API_KEY=your-key' >> .env
+echo 'OPENAI_API_KEY=your-key' >> .env
+npx tsx examples/openai/bin/weather.ts
+```
+
+----------------------------------------
+
+TITLE: Installing Vercel AI SDK Adapter with npm/yarn/pnpm
+DESCRIPTION: This snippet demonstrates how to install the Vercel AI SDK adapter and its dependencies using different package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/quickstart.mdx#2025-04-11_snippet_3
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/ai-sdk ai
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/ai-sdk ai
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/ai-sdk ai
+```
+
+----------------------------------------
+
+TITLE: Installing Individual AI Tool (@agentic/weather) with npm/yarn/pnpm
+DESCRIPTION: This snippet shows how to install an individual AI tool, specifically the Weather tool, using different package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/quickstart.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/weather
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/weather
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/weather
+```
+
+----------------------------------------
+
+TITLE: Setting Up Example Project
+DESCRIPTION: Commands for cloning the repository, installing dependencies, and configuring environment variables to run the weather example.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/llamaindex.mdx#2025-04-11_snippet_2
+
+LANGUAGE: sh
+CODE:
+```
+git clone git@github.com:transitive-bullshit/agentic.git
+cd agentic
+pnpm install
+echo 'WEATHER_API_KEY=your-key' >> .env
+echo 'OPENAI_API_KEY=your-key' >> .env
+npx tsx examples/llamaindex/bin/weather.ts
+```
+
+----------------------------------------
+
+TITLE: Installing Apollo Package using Package Managers
+DESCRIPTION: Commands for installing the @agentic/apollo package using npm, yarn, or pnpm. These commands add the package to your project's dependencies.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/apollo.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/apollo
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/apollo
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/apollo
+```
+
+----------------------------------------
+
+TITLE: Installing Dexa API Client using Package Managers
+DESCRIPTION: Commands for installing the @agentic/dexa package using npm, yarn, or pnpm. This package is required to interact with the Dexa API.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/dexa.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/dexa
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/dexa
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/dexa
+```
+
+----------------------------------------
+
+TITLE: Installing Core Dependencies (zod) with npm/yarn/pnpm
+DESCRIPTION: This snippet shows how to install the core dependency 'zod' using different package managers (npm, yarn, pnpm).
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/quickstart.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install zod
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add zod
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add zod
+```
+
+----------------------------------------
+
+TITLE: Installing Firebase Genkit Adapter with npm/yarn/pnpm
+DESCRIPTION: This snippet demonstrates how to install the Firebase Genkit adapter and its dependencies using different package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/quickstart.mdx#2025-04-11_snippet_7
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/genkit genkit
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/genkit genkit
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/genkit genkit
+```
+
+----------------------------------------
+
+TITLE: Installing LangChain Adapter with npm/yarn/pnpm
+DESCRIPTION: This snippet demonstrates how to install the LangChain adapter and its dependencies using different package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/quickstart.mdx#2025-04-11_snippet_5
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/langchain @langchain/core langchain
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/langchain @langchain/core langchain
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/langchain @langchain/core langchain
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/reddit package
+DESCRIPTION: Commands for installing the @agentic/reddit package using different package managers (npm, yarn, pnpm).
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/reddit.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/reddit
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/reddit
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/reddit
+```
+
+----------------------------------------
+
+TITLE: Installing Firecrawl Package Using Package Managers
+DESCRIPTION: Installation commands for the @agentic/firecrawl package using different Node.js package managers (npm, yarn, pnpm).
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/firecrawl.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/firecrawl
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/firecrawl
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/firecrawl
+```
+
+----------------------------------------
+
+TITLE: Installing Additional Dependencies with pnpm
+DESCRIPTION: Command to install additional required dependencies (OpenAI provider, Agentic weather tool, and dotenv) using pnpm.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/ai-sdk.mdx#2025-04-11_snippet_6
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @ai-sdk/openai @agentic/weather dotenv
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/twilio Package with NPM
+DESCRIPTION: Command to install the @agentic/twilio package using NPM package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/twilio.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/twilio
+```
+
+----------------------------------------
+
+TITLE: Installing LlamaIndex Adapter with npm/yarn/pnpm
+DESCRIPTION: This snippet shows how to install the LlamaIndex adapter and its dependencies using different package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/quickstart.mdx#2025-04-11_snippet_6
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/llamaindex llamaindex
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/llamaindex llamaindex
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/llamaindex llamaindex
+```
+
+----------------------------------------
+
+TITLE: Installing Additional Dependencies with npm
+DESCRIPTION: Command to install additional required dependencies (OpenAI provider, Agentic weather tool, and dotenv) using npm.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/ai-sdk.mdx#2025-04-11_snippet_4
+
+LANGUAGE: bash
+CODE:
+```
+npm install @ai-sdk/openai @agentic/weather dotenv
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/social-data Package
+DESCRIPTION: Commands for installing the @agentic/social-data package using different package managers (npm, yarn, pnpm).
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/social-data.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/social-data
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/social-data
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/social-data
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/dexter and Dependencies with npm
+DESCRIPTION: Command to install the @agentic/dexter package along with the required @dexaai/dexter dependency using npm.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/dexter.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/dexter @dexaai/dexter
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/notion Package with Yarn
+DESCRIPTION: Command to install the Notion API client package using Yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/notion.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/notion
+```
+
+----------------------------------------
+
+TITLE: Installing OpenAI SDK with npm/yarn/pnpm
+DESCRIPTION: This snippet demonstrates how to install the OpenAI SDK using different package managers. No separate adapter is needed for OpenAI SDK.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/quickstart.mdx#2025-04-11_snippet_9
+
+LANGUAGE: bash
+CODE:
+```
+npm install openai
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add openai
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add openai
+```
+
+----------------------------------------
+
+TITLE: Installing Additional Dependencies with yarn
+DESCRIPTION: Command to install additional required dependencies (OpenAI provider, Agentic weather tool, and dotenv) using yarn.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/ai-sdk.mdx#2025-04-11_snippet_5
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @ai-sdk/openai @agentic/weather dotenv
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/typeform package
+DESCRIPTION: Commands for installing the @agentic/typeform package using different package managers (npm, yarn, pnpm).
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/typeform.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/typeform
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/typeform
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/typeform
+```
+
+----------------------------------------
+
+TITLE: Installing People Data Labs Client Package
+DESCRIPTION: Commands for installing the @agentic/people-data-labs package using npm, yarn, or pnpm package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/people-data-labs.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/people-data-labs
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/people-data-labs
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/people-data-labs
+```
+
+----------------------------------------
+
+TITLE: Installing Additional Dependencies with npm
+DESCRIPTION: Command for installing the required additional dependencies (weather client and dotenv) using npm.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/xsai.mdx#2025-04-11_snippet_4
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/weather dotenv
+```
+
+----------------------------------------
+
+TITLE: Installing Perigon Client Package
+DESCRIPTION: Commands for installing the @agentic/perigon package using different package managers (npm, yarn, pnpm).
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/perigon.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/perigon
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/perigon
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/perigon
+```
+
+----------------------------------------
+
+TITLE: Installing Google Custom Search Package
+DESCRIPTION: Different package manager commands for installing the @agentic/google-custom-search package using npm, yarn, or pnpm.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/google-custom-search.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/google-custom-search
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/google-custom-search
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/google-custom-search
+```
+
+----------------------------------------
+
+TITLE: Installing Mastra dependencies with yarn
+DESCRIPTION: Command for installing the required Mastra packages using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/mastra.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/mastra @mastra/core
+```
+
+----------------------------------------
+
+TITLE: Installing E2B Dependencies with Package Managers
+DESCRIPTION: Commands for installing the required E2B packages (@agentic/e2b and @e2b/code-interpreter) using different Node.js package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/e2b.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/e2b @e2b/code-interpreter
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/e2b @e2b/code-interpreter
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/e2b @e2b/code-interpreter
+```
+
+----------------------------------------
+
+TITLE: Installing Novu API Client Package
+DESCRIPTION: Commands for installing the @agentic/novu package using different package managers. This snippet shows how to install the package using npm, yarn, or pnpm.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/novu.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/novu
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/novu
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/novu
+```
+
+----------------------------------------
+
+TITLE: Installing HackerNews API Client Package
+DESCRIPTION: Commands for installing the @agentic/hacker-news package using different package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/hacker-news.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/hacker-news
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/hacker-news
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/hacker-news
+```
+
+----------------------------------------
+
+TITLE: Installing Mastra dependencies with pnpm
+DESCRIPTION: Command for installing the required Mastra packages using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/mastra.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/mastra @mastra/core
+```
+
+----------------------------------------
+
+TITLE: Installing Airtable Client for Agentic
+DESCRIPTION: Commands to install the @agentic/airtable package using npm, yarn, or pnpm package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/airtable.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/airtable
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/airtable
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/airtable
+```
+
+----------------------------------------
+
+TITLE: Installing SearxNG Client Package via yarn
+DESCRIPTION: Command to install the @agentic/searxng package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/searxng.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/searxng
+```
+
+----------------------------------------
+
+TITLE: Installing Jina Package with Package Managers
+DESCRIPTION: Commands to install the @agentic/jina package using different Node.js package managers (npm, yarn, and pnpm).
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/jina.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/jina
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/jina
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/jina
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/dexter and Dependencies with yarn
+DESCRIPTION: Command to install the @agentic/dexter package along with the required @dexaai/dexter dependency using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/dexter.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/dexter @dexaai/dexter
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/proxycurl package
+DESCRIPTION: Commands for installing the @agentic/proxycurl package using npm, yarn, or pnpm package managers.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/proxycurl.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/proxycurl
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/proxycurl
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/proxycurl
+```
+
+----------------------------------------
+
+TITLE: Installing xsAI SDK and dependencies with pnpm
+DESCRIPTION: Command for installing the xsAI SDK and its dependencies using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/xsai.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/xsai xsai @xsai/tool
+```
+
+----------------------------------------
+
+TITLE: Installing xsAI SDK and dependencies with yarn
+DESCRIPTION: Command for installing the xsAI SDK and its dependencies using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/xsai.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/xsai xsai @xsai/tool
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/wikidata Package using npm
+DESCRIPTION: Command to install the @agentic/wikidata package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/wikidata.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/wikidata
+```
+
+----------------------------------------
+
+TITLE: Installing ZoomInfo Package using Package Managers
+DESCRIPTION: This snippet demonstrates how to install the @agentic/zoominfo package using different package managers: npm, yarn, and pnpm.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/zoominfo.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/zoominfo
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/zoominfo
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/zoominfo
+```
+
+----------------------------------------
+
+TITLE: Installing Diffbot API Client with npm
+DESCRIPTION: Command to install the Diffbot API client package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/diffbot.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/diffbot
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/google-drive Package with yarn
+DESCRIPTION: Command to install the @agentic/google-drive package and its dependencies using yarn.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/google-drive.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/google-drive googleapis google-auth-library
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/serpapi package
+DESCRIPTION: Commands for installing the @agentic/serpapi package using different package managers (npm, yarn, pnpm).
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/serpapi.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/serpapi
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/serpapi
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/serpapi
+```
+
+----------------------------------------
+
+TITLE: Installing DuckDuckGo Client Package
+DESCRIPTION: Different package manager commands for installing the @agentic/duck-duck-go package.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/duck-duck-go.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/duck-duck-go
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/duck-duck-go
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/duck-duck-go
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/dexter and Dependencies with pnpm
+DESCRIPTION: Command to install the @agentic/dexter package along with the required @dexaai/dexter dependency using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/dexter.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/dexter @dexaai/dexter
+```
+
+----------------------------------------
+
+TITLE: Installing WeatherClient Package using PNPM
+DESCRIPTION: Command to install the @agentic/weather package using PNPM package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/weather.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/weather
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/hunter with npm
+DESCRIPTION: Command to install the Hunter client library using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/hunter.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/hunter
+```
+
+----------------------------------------
+
+TITLE: Installing additional dependencies with pnpm
+DESCRIPTION: Command for installing the required additional packages (OpenAI SDK, weather tool, and dotenv) using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/mastra.mdx#2025-04-11_snippet_6
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @ai-sdk/openai @agentic/weather dotenv
+```
+
+----------------------------------------
+
+TITLE: Installing Wolfram Alpha Client Package
+DESCRIPTION: Different package manager commands to install the @agentic/wolfram-alpha package.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/wolfram-alpha.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/wolfram-alpha
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/wolfram-alpha
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/wolfram-alpha
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/wikidata Package using yarn
+DESCRIPTION: Command to install the @agentic/wikidata package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/wikidata.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/wikidata
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/notion Package with NPM
+DESCRIPTION: Command to install the Notion API client package using NPM package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/notion.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/notion
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/bing with NPM
+DESCRIPTION: Command to install the Bing client package using NPM package manager
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/bing.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/bing
+```
+
+----------------------------------------
+
+TITLE: Installing the YouTube API Client with yarn
+DESCRIPTION: Command to install the @agentic/youtube package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/youtube.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/youtube
+```
+
+----------------------------------------
+
+TITLE: Installing Genkit Dependencies
+DESCRIPTION: Package installation commands for different Node.js package managers (npm, yarn, and pnpm).
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/genkit.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/genkit genkit
+```
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/genkit genkit
+```
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/genkit genkit
+```
+
+----------------------------------------
+
+TITLE: Installing SearxNG Client Package via npm
+DESCRIPTION: Command to install the @agentic/searxng package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/searxng.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/searxng
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/wikidata Package using pnpm
+DESCRIPTION: Command to install the @agentic/wikidata package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/wikidata.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/wikidata
+```
+
+----------------------------------------
+
+TITLE: Installing LeadMagic Package with npm
+DESCRIPTION: Command to install the LeadMagic package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/leadmagic.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/leadmagic
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/bing with Yarn
+DESCRIPTION: Command to install the Bing client package using Yarn package manager
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/bing.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/bing
+```
+
+----------------------------------------
+
+TITLE: Installing xsAI SDK and dependencies with npm
+DESCRIPTION: Command for installing the xsAI SDK and its dependencies using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/xsai.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/xsai xsai @xsai/tool
+```
+
+----------------------------------------
+
+TITLE: Installing the YouTube API Client with npm
+DESCRIPTION: Command to install the @agentic/youtube package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/youtube.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/youtube
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/clearbit Package with npm
+DESCRIPTION: Command to install the @agentic/clearbit package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/clearbit.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/clearbit
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/twilio Package with Yarn
+DESCRIPTION: Command to install the @agentic/twilio package using Yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/twilio.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/twilio
+```
+
+----------------------------------------
+
+TITLE: Installing the Calculator Package with npm
+DESCRIPTION: Command to install the calculator package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/calculator.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/calculator
+```
+
+----------------------------------------
+
+TITLE: Installing Tavily using pnpm
+DESCRIPTION: Command to install the @agentic/tavily package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/tavily.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/tavily
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/ai-sdk Package with yarn
+DESCRIPTION: Command to install the Agentic AI SDK adapter package along with the required AI dependency using yarn.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/ai-sdk.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/ai-sdk ai
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/brave-search package using yarn
+DESCRIPTION: Command to install the @agentic/brave-search package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/brave-search.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/brave-search
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/exa with yarn
+DESCRIPTION: Command to install the Exa client package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/exa.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/exa
+```
+
+----------------------------------------
+
+TITLE: Installing Tavily using yarn
+DESCRIPTION: Command to install the @agentic/tavily package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/tavily.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/tavily
+```
+
+----------------------------------------
+
+TITLE: Installing Tavily using npm
+DESCRIPTION: Command to install the @agentic/tavily package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/tavily.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/tavily
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/clearbit Package with yarn
+DESCRIPTION: Command to install the @agentic/clearbit package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/clearbit.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/clearbit
+```
+
+----------------------------------------
+
+TITLE: Installing RocketReach Client via yarn
+DESCRIPTION: Command to install the RocketReach client package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/rocketreach.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/rocketreach
+```
+
+----------------------------------------
+
+TITLE: Installing the Calculator Package with yarn
+DESCRIPTION: Command to install the calculator package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/calculator.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/calculator
+```
+
+----------------------------------------
+
+TITLE: Installing the YouTube API Client with pnpm
+DESCRIPTION: Command to install the @agentic/youtube package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/youtube.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/youtube
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/notion Package with PNPM
+DESCRIPTION: Command to install the Notion API client package using PNPM package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/notion.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/notion
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/brave-search package using pnpm
+DESCRIPTION: Command to install the @agentic/brave-search package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/brave-search.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/brave-search
+```
+
+----------------------------------------
+
+TITLE: Installing Open-Meteo Client with PNPM
+DESCRIPTION: Command to install the Open-Meteo client package using PNPM package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/open-meteo.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/open-meteo
+```
+
+----------------------------------------
+
+TITLE: Installing RocketReach Client via pnpm
+DESCRIPTION: Command to install the RocketReach client package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/rocketreach.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/rocketreach
+```
+
+----------------------------------------
+
+TITLE: Installing Diffbot API Client with yarn
+DESCRIPTION: Command to install the Diffbot API client package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/diffbot.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/diffbot
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/predict-leads package with yarn
+DESCRIPTION: Command to install the Predict Leads package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/predict-leads.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/predict-leads
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/slack Package with pnpm
+DESCRIPTION: Command to install the @agentic/slack package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/slack.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/slack
+```
+
+----------------------------------------
+
+TITLE: Installing LeadMagic Package with yarn
+DESCRIPTION: Command to install the LeadMagic package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/leadmagic.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/leadmagic
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/google-drive Package with pnpm
+DESCRIPTION: Command to install the @agentic/google-drive package and its dependencies using pnpm.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/google-drive.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/google-drive googleapis google-auth-library
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/mcp Package with yarn
+DESCRIPTION: Command to install the @agentic/mcp package using the yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/mcp.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/mcp
+```
+
+----------------------------------------
+
+TITLE: Installing WeatherClient Package using Yarn
+DESCRIPTION: Command to install the @agentic/weather package using Yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/weather.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/weather
+```
+
+----------------------------------------
+
+TITLE: Installing Midjourney Client with pnpm
+DESCRIPTION: Command to install the @agentic/midjourney package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/midjourney.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/midjourney
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/mcp Package with npm
+DESCRIPTION: Command to install the @agentic/mcp package using the npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/mcp.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/mcp
+```
+
+----------------------------------------
+
+TITLE: Installing WeatherClient Package using NPM
+DESCRIPTION: Command to install the @agentic/weather package using NPM package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/weather.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/weather
+```
+
+----------------------------------------
+
+TITLE: Installing Mastra dependencies with npm
+DESCRIPTION: Command for installing the required Mastra packages using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/mastra.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/mastra @mastra/core
+```
+
+----------------------------------------
+
+TITLE: Installing Wikipedia API Client with yarn
+DESCRIPTION: Command to install the @agentic/wikipedia package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/wikipedia.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/wikipedia
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/ai-sdk Package with pnpm
+DESCRIPTION: Command to install the Agentic AI SDK adapter package along with the required AI dependency using pnpm.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/ai-sdk.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/ai-sdk ai
+```
+
+----------------------------------------
+
+TITLE: Installing SearxNG Client Package via pnpm
+DESCRIPTION: Command to install the @agentic/searxng package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/searxng.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/searxng
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/brave-search package using npm
+DESCRIPTION: Command to install the @agentic/brave-search package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/brave-search.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/brave-search
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/hunter with pnpm
+DESCRIPTION: Command to install the Hunter client library using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/hunter.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/hunter
+```
+
+----------------------------------------
+
+TITLE: Installing Midjourney Client with npm
+DESCRIPTION: Command to install the @agentic/midjourney package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/midjourney.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/midjourney
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/predict-leads package with npm
+DESCRIPTION: Command to install the Predict Leads package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/predict-leads.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/predict-leads
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/gravatar package with npm
+DESCRIPTION: Command to install the @agentic/gravatar package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/gravatar.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/gravatar
+```
+
+----------------------------------------
+
+TITLE: Installing Open-Meteo Client with NPM
+DESCRIPTION: Command to install the Open-Meteo client package using NPM package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/open-meteo.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/open-meteo
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/arxiv package using pnpm
+DESCRIPTION: Command to install the @agentic/arxiv package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/arxiv.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/arxiv
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/exa with pnpm
+DESCRIPTION: Command to install the Exa client package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/exa.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/exa
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/twilio Package with PNPM
+DESCRIPTION: Command to install the @agentic/twilio package using PNPM package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/twilio.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/twilio
+```
+
+----------------------------------------
+
+TITLE: Installing Open-Meteo Client with Yarn
+DESCRIPTION: Command to install the Open-Meteo client package using Yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/open-meteo.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/open-meteo
+```
+
+----------------------------------------
+
+TITLE: Installing Additional Dependencies with pnpm
+DESCRIPTION: Command for installing the required additional dependencies (weather client and dotenv) using pnpm.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/xsai.mdx#2025-04-11_snippet_6
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/weather dotenv
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/serper Package with pnpm
+DESCRIPTION: Command to install the @agentic/serper package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/serper.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/serper
+```
+
+----------------------------------------
+
+TITLE: Installing additional dependencies with npm
+DESCRIPTION: Command for installing the required additional packages (OpenAI SDK, weather tool, and dotenv) using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/mastra.mdx#2025-04-11_snippet_4
+
+LANGUAGE: bash
+CODE:
+```
+npm install @ai-sdk/openai @agentic/weather dotenv
+```
+
+----------------------------------------
+
+TITLE: Installing Additional Dependencies with yarn
+DESCRIPTION: Command for installing the required additional dependencies (weather client and dotenv) using yarn.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/xsai.mdx#2025-04-11_snippet_5
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/weather dotenv
+```
+
+----------------------------------------
+
+TITLE: HTML Project Header with Logo
+DESCRIPTION: HTML markup for displaying the project logo and header centered on the page with a link to the project website.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/packages/arxiv/readme.md#2025-04-11_snippet_0
+
+LANGUAGE: HTML
+CODE:
+```
+<p align="center">
+  <a href="https://agentic.so">
+    <img alt="Agentic" src="https://raw.githubusercontent.com/transitive-bullshit/agentic/main/docs/media/agentic-header.jpg" width="308">
+  </a>
+</p>
+```
+
+----------------------------------------
+
+TITLE: Installing additional dependencies with yarn
+DESCRIPTION: Command for installing the required additional packages (OpenAI SDK, weather tool, and dotenv) using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/sdks/mastra.mdx#2025-04-11_snippet_5
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @ai-sdk/openai @agentic/weather dotenv
+```
+
+----------------------------------------
+
+TITLE: Installing LeadMagic Package with pnpm
+DESCRIPTION: Command to install the LeadMagic package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/leadmagic.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/leadmagic
+```
+
+----------------------------------------
+
+TITLE: HTML Repository Header with Project Logo
+DESCRIPTION: HTML markup for displaying the project logo, description and status badges in a centered layout
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/packages/langchain/readme.md#2025-04-11_snippet_0
+
+LANGUAGE: HTML
+CODE:
+```
+<p align="center">
+  <a href="https://agentic.so">
+    <img alt="Agentic" src="https://raw.githubusercontent.com/transitive-bullshit/agentic/main/docs/media/agentic-header.jpg" width="308">
+  </a>
+</p>
+
+<p align="center">
+  <em>Agentic adapter for LangChain's JS SDK.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/transitive-bullshit/agentic/actions/workflows/main.yml"><img alt="Build Status" src="https://github.com/transitive-bullshit/agentic/actions/workflows/main.yml/badge.svg" /></a>
+  <a href="https://www.npmjs.com/package/@agentic/stdlib"><img alt="NPM" src="https://img.shields.io/npm/v/@agentic/stdlib.svg" /></a>
+  <a href="https://github.com/transitive-bullshit/agentic/blob/main/license"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue" /></a>
+  <a href="https://prettier.io"><img alt="Prettier Code Formatting" src="https://img.shields.io/badge/code_style-prettier-brightgreen.svg" /></a>
+</p>
+```
+
+----------------------------------------
+
+TITLE: Displaying Agentic Logo and Description in HTML
+DESCRIPTION: This HTML snippet centers and displays the Agentic logo with a link to the project website, followed by a brief description of the project.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/packages/google-docs/readme.md#2025-04-11_snippet_0
+
+LANGUAGE: HTML
+CODE:
+```
+<p align="center">
+  <a href="https://agentic.so">
+    <img alt="Agentic" src="https://raw.githubusercontent.com/transitive-bullshit/agentic/main/docs/media/agentic-header.jpg" width="308">
+  </a>
+</p>
+
+<p align="center">
+  <em>AI agent stdlib that works with any LLM and TypeScript AI SDK.</em>
+</p>
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/arxiv package using npm
+DESCRIPTION: Command to install the @agentic/arxiv package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/arxiv.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/arxiv
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/clearbit Package with pnpm
+DESCRIPTION: Command to install the @agentic/clearbit package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/clearbit.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/clearbit
+```
+
+----------------------------------------
+
+TITLE: Displaying Agentic Logo and Description in HTML
+DESCRIPTION: This HTML snippet centers and displays the Agentic logo, project description, and various project status badges.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/packages/mastra/readme.md#2025-04-11_snippet_0
+
+LANGUAGE: HTML
+CODE:
+```
+<p align="center">
+  <a href="https://agentic.so">
+    <img alt="Agentic" src="https://raw.githubusercontent.com/transitive-bullshit/agentic/main/docs/media/agentic-header.jpg" width="308">
+  </a>
+</p>
+
+<p align="center">
+  <em>Agentic adapter for the Mastra AI Agent SDK.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/transitive-bullshit/agentic/actions/workflows/main.yml"><img alt="Build Status" src="https://github.com/transitive-bullshit/agentic/actions/workflows/main.yml/badge.svg" /></a>
+  <a href="https://www.npmjs.com/package/@agentic/stdlib"><img alt="NPM" src="https://img.shields.io/npm/v/@agentic/stdlib.svg" /></a>
+  <a href="https://github.com/transitive-bullshit/agentic/blob/main/license"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue" /></a>
+  <a href="https://prettier.io"><img alt="Prettier Code Formatting" src="https://img.shields.io/badge/code_style-prettier-brightgreen.svg" /></a>
+</p>
+```
+
+----------------------------------------
+
+TITLE: Installing Wikipedia API Client with npm
+DESCRIPTION: Command to install the @agentic/wikipedia package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/wikipedia.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/wikipedia
+```
+
+----------------------------------------
+
+TITLE: Installing Midjourney Client with yarn
+DESCRIPTION: Command to install the @agentic/midjourney package using yarn package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/midjourney.mdx#2025-04-11_snippet_1
+
+LANGUAGE: bash
+CODE:
+```
+yarn add @agentic/midjourney
+```
+
+----------------------------------------
+
+TITLE: Displaying HTML Content in Markdown
+DESCRIPTION: HTML markup for centering project logo, description and status badges in markdown document
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/packages/calculator/readme.md#2025-04-11_snippet_0
+
+LANGUAGE: markdown
+CODE:
+```
+<p align="center">
+  <a href="https://agentic.so">
+    <img alt="Agentic" src="https://raw.githubusercontent.com/transitive-bullshit/agentic/main/docs/media/agentic-header.jpg" width="308">
+  </a>
+</p>
+
+<p align="center">
+  <em>AI agent stdlib that works with any LLM and TypeScript AI SDK.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/transitive-bullshit/agentic/actions/workflows/main.yml"><img alt="Build Status" src="https://github.com/transitive-bullshit/agentic/actions/workflows/main.yml/badge.svg" /></a>
+  <a href="https://www.npmjs.com/package/@agentic/stdlib"><img alt="NPM" src="https://img.shields.io/npm/v/@agentic/stdlib.svg" /></a>
+  <a href="https://github.com/transitive-bullshit/agentic/blob/main/license"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue" /></a>
+  <a href="https://prettier.io"><img alt="Prettier Code Formatting" src="https://img.shields.io/badge/code_style-prettier-brightgreen.svg" /></a>
+</p>
+```
+
+----------------------------------------
+
+TITLE: Installing @agentic/serper Package with npm
+DESCRIPTION: Command to install the @agentic/serper package using npm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/serper.mdx#2025-04-11_snippet_0
+
+LANGUAGE: bash
+CODE:
+```
+npm install @agentic/serper
+```
+
+----------------------------------------
+
+TITLE: Installing Wikipedia API Client with pnpm
+DESCRIPTION: Command to install the @agentic/wikipedia package using pnpm package manager.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/docs/tools/wikipedia.mdx#2025-04-11_snippet_2
+
+LANGUAGE: bash
+CODE:
+```
+pnpm add @agentic/wikipedia
+```
+
+----------------------------------------
+
+TITLE: HTML Status Badges
+DESCRIPTION: HTML markup for displaying project status badges including build status, NPM version, license, and code formatting.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/packages/notion/readme.md#2025-04-11_snippet_2
+
+LANGUAGE: HTML
+CODE:
+```
+<p align="center">
+  <a href="https://github.com/transitive-bullshit/agentic/actions/workflows/main.yml"><img alt="Build Status" src="https://github.com/transitive-bullshit/agentic/actions/workflows/main.yml/badge.svg" /></a>
+  <a href="https://www.npmjs.com/package/@agentic/stdlib"><img alt="NPM" src="https://img.shields.io/npm/v/@agentic/stdlib.svg" /></a>
+  <a href="https://github.com/transitive-bullshit/agentic/blob/main/license"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue" /></a>
+  <a href="https://prettier.io"><img alt="Prettier Code Formatting" src="https://img.shields.io/badge/code_style-prettier-brightgreen.svg" /></a>
+</p>
+```
+
+----------------------------------------
+
+TITLE: HTML Project Header with Logo
+DESCRIPTION: Centers and displays the Agentic project logo with a link to the project website.
+SOURCE: https://github.com/transitive-bullshit/agentic/blob/main/packages/midjourney/readme.md#2025-04-11_snippet_0
+
+LANGUAGE: HTML
+CODE:
+```
+<p align="center">
+  <a href="https://agentic.so">
+    <img alt="Agentic" src="https://raw.githubusercontent.com/transitive-bullshit/agentic/main/docs/media/agentic-header.jpg" width="308">
+  </a>
+</p>
+```
