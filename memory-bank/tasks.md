@@ -10,13 +10,19 @@
 ## Task Details
 ### T2: Migrate to arxiv Python Package
 **Description**: Replace custom ArXiv scraper with official arxiv Python package
-**Status**: ⬜ **Last**: 2025-04-25
+**Status**: 🔄 **Last**: 2025-04-25 15:30
 **Criteria**: 
-- Archive existing scraper code
-- Implement new client using arxiv package
-- Migrate all functionality
-- Update tests
-- Update documentation
+- Archive existing scraper code ✅
+- Implement new client using arxiv package ✅
+- Migrate all functionality ✅
+   - Fixed query building for category filtering
+   - Added proper logging
+   - Improved error handling
+   - Added sorting to author search
+- Update tests ✅
+- Update documentation ❌
+
+**Notes**: Initial migration complete. Found and fixed issue with category query format in client implementation.
 **Files**: 
 - `backend/arxiv_scraper/scraper.py`
 - `tests/unit/backend/arxiv_scraper/test_scraper.py`
