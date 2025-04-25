@@ -5,7 +5,8 @@
 | ID | Title | Status | Priority | Started | Dependencies |
 |----|-------|--------|----------|---------|--------------|
 | T1 | Project Implementation Planning | ⬜ | HIGH | - | T0 |
-| T2 | Migrate to arxiv Python Package | ⬜ | HIGH | 2025-04-25 | - |
+| T2 | Migrate to arxiv Python Package | ✅ | HIGH | 2025-04-25 | - |
+| T3 | Simplify Backend Implementation | ✅ | HIGH | 2025-04-25 | T2 |
 
 ## Task Details
 ### T2: Migrate to arxiv Python Package
@@ -28,6 +29,19 @@
 - `tests/unit/backend/arxiv_scraper/test_scraper.py`
 - `tests/integration/test_arxiv_integration.py`
 **Notes**: Original scraper code to be archived for reference
+
+### T3: Simplify Backend Implementation
+**Description**: Stripped down backend to bare essentials following KIRFSS principle
+**Status**: ✅ **Last**: 2025-04-25
+**Criteria**: 
+- Implement minimal FastAPI endpoints ✅
+- Create simple test suite with HTML reports ✅
+- Remove unnecessary complexity ✅
+**Files**: 
+- `backend/main.py`
+- `tests/test_api.py`
+- `tests/conftest.py`
+**Notes**: Successfully simplified implementation using arxiv package
 
 ### T1: Project Implementation Planning
 **Description**: Plan the technical implementation of the ArXiv Agent project

@@ -2,6 +2,24 @@
 *Last Updated: 2025-04-25 15:45*
 
 ## Overview
+- Active: 1 | Completed: 2 | Focus: T3
+
+## Task Registry
+- T1: Project Planning - ⬜ 
+- T2: Arxiv Package Migration - ✅
+- T3: Backend Simplification - ✅
+
+## Recent Activity
+### T3: Backend Simplification
+**Status:** ✅ **Priority:** HIGH
+**Started:** 2025-04-25 **Completed:** 2025-04-25
+**Context**: Simplified entire backend following KIRFSS principle
+**Files**: 
+- `backend/main.py`
+- `tests/test_api.py`
+- `tests/conftest.py`
+
+### T2: Arxiv Package Migration
 - Active: 1 | Paused: 0 | Focus: T2
 
 ## Task Registry

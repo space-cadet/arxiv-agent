@@ -1,13 +1,23 @@
 # System Patterns
 *Last Updated: 2025-04-24*
 
-## Architecture Patterns
-To be defined during implementation.
+# Architecture and Design Patterns
 
-## Design Patterns
-To be determined based on implementation requirements.
+## Core Principles
+
+1. **KEEP IT REALLY FUCKING SIMPLE, STUPID (KIRFSS)**
+   - No unnecessary abstractions
+   - No premature optimization
+   - No over-engineering
+   - Just make it work first
+   - If you think it's simple enough, make it simpler
 
 ## Implementation Patterns
+- Direct FastAPI endpoints with minimal middleware
+- Simple Streamlit frontend
+- Only essential error handling
+- Minimal state management
+
 ### Memory Bank System
 - Hierarchical file organization
 - Task-based tracking

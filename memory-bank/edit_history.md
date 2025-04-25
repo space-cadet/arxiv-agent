@@ -31,6 +31,16 @@
 - Updated `main.py` to use new ArxivClient instead of ArxivScraper
 - Replaced all scraper references with new client
 - Updated shutdown handler to use new client
+
+### 16:00 - T3: Backend Simplification
+- Rewrote `backend/main.py` - Simplified FastAPI implementation
+- Created `tests/test_api.py` - Basic test suite
+- Created `tests/conftest.py` - Basic test config
+- Updated `tests/requirements.txt` - Added pytest-html
+- Modified `pytest.ini` - Added HTML report generation
+- Updated `main.py` to use new ArxivClient instead of ArxivScraper
+- Replaced all scraper references with new client
+- Updated shutdown handler to use new client
 - Archived original scraper to `/archive/scrapers/arxiv_scraper_v1/`
 - Created new implementation at `backend/arxiv_client/client.py`
 - Added implementation plan at `memory-bank/implementation-details/arxiv-client/integration_plan.md`
